@@ -1134,11 +1134,6 @@ traefik:
     gitlab-shell:
       port: 22
       expose: true
-  # Image can be changed for FIPS-compliance.
-  #   https://doc.traefik.io/traefik-enterprise/operations/fips-image
-  # image:
-  #   name: traefik/traefikee
-  #   tag: v2.6.1-fips
 
 ## Settings for individual sub-charts under GitLab
 ## Note: Many of these settings are configurable via globals
