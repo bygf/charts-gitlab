@@ -1130,8 +1130,6 @@ grafana:
 
 traefik:
   enabled: false
-  ingressClass:
-    enabled: true
   ports:
     gitlab-shell:
       port: 22

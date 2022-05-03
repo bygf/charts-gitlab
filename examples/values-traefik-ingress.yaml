@@ -27,5 +27,7 @@ traefik:
   # This can be removed if `global.ingress.class` is set to `$releaseName-traefik`.
   fullnameOverride: traefik
   ingressClass:
-    # Helps an avoid error when making local templates
+    # Create an IngressClass object for Traefik.
+    enabled: true
+    # Helps an avoid error when making local templates.
     fallbackApiVersion: v1
