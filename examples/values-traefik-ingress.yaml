@@ -31,3 +31,10 @@ traefik:
     enabled: true
     # Helps an avoid error when making local templates.
     fallbackApiVersion: v1
+
+# Note: for FIPS compliance, see Traefik Enterprise:
+# - https://doc.traefik.io/traefik-enterprise/features
+# - https://doc.traefik.io/traefik-enterprise/operations/fips-image
+# - https://doc.traefik.io/traefik-enterprise/installing/kubernetes/helm
+# - https://artifacthub.io/packages/olm/community-operators/traefikee-operator
+# - https://catalog.redhat.com/software/operators/detail/5e98745a6c5dcb34dfbb1a0a
