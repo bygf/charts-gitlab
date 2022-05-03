@@ -14,7 +14,7 @@ Traefik will [translate the native Kubernetes Ingress](https://doc.traefik.io/tr
 
 Traefik also supports git over SSH via
 [IngressRouteTCP](https://doc.traefik.io/traefik/routing/providers/kubernetes-crd/#kind-ingressroutetcp)
-objects, which are deployed by the GitLab-Shell chart when `global.ingress.provider=traefik`.
+objects, which are deployed by the GitLab Shell chart when `global.ingress.provider=traefik`.
 
 ## Configuring Traefik
 
