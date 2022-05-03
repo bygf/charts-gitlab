@@ -12,7 +12,7 @@ The [Traefik Helm chart](https://artifacthub.io/packages/helm/traefik/traefik) c
 Traefik will [translate the native Kubernetes Ingress](https://doc.traefik.io/traefik/providers/kubernetes-ingress/) objects into
 [IngressRoute](https://doc.traefik.io/traefik/routing/providers/kubernetes-crd/#kind-ingressroute) objects.
 
-Traefik also supports git over SSH via
+Traefik also supports Git over SSH via
 [IngressRouteTCP](https://doc.traefik.io/traefik/routing/providers/kubernetes-crd/#kind-ingressroutetcp)
 objects, which are deployed by the GitLab Shell chart when `global.ingress.provider=traefik`.
 
