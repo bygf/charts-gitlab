@@ -1132,8 +1132,9 @@ traefik:
   enabled: false
   ports:
     gitlab-shell:
-      port: 22
       expose: true
+      port: 2222
+      exposedPort: 22
 
 ## Settings for individual sub-charts under GitLab
 ## Note: Many of these settings are configurable via globals
