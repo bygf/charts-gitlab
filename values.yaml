@@ -830,9 +830,9 @@ haproxy:
     service:
       type: LoadBalancer
       tcpPorts:
-        - name: shell
+        - name: ssh
           port: 22
-          targetPort: 2222
+          targetPort: 22
     extraArgs:
       # TODO: replace 'gitlab' with Release namespace
       - --configmap-tcp-services=$(POD_NAMESPACE)/gitlab-haproxy-tcp
