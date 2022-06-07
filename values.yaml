@@ -824,6 +824,19 @@ nginx-ingress:
   serviceAccount:
     create: true
 
+haproxy:
+  enabled: false
+  controller:
+    service:
+      type: LoadBalancer
+      tcpPorts:
+        - name: shell
+          port: 22
+          targetPort: 2222
+    extraArgs:
+      # TODO: replace 'gitlab' with Release namespace
+      - --configmap-tcp-services=$(POD_NAMESPACE)/gitlab-haproxy-tcp
+
 ## Installation & configuration of stable/prometheus
 ## See requirements.yaml for current version
 prometheus:

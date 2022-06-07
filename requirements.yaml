@@ -35,3 +35,8 @@ dependencies:
 - name: nginx-ingress
   condition: nginx-ingress.enabled
   version: '*.*.*'
+- name: kubernetes-ingress
+  alias: haproxy
+  version: 1.22.0
+  condition: haproxy.enabled
+  repository: https://haproxytech.github.io/helm-charts

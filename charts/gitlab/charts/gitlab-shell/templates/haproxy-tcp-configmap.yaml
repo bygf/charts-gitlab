@@ -1,0 +1,12 @@
+{{- if eq .Values.global.ingress.provider "haproxy" -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-haproxy-tcp
+  namespace: {{ .Release.Namespace }}
+data:
+  # Port where the frontend is going to listen to.
+  #   Kubernetes service in the format NS/ServiceName:ServicePort
+  22:
+    "{{ .Release.Namespace }}/{{ .Release.Name }}-gitlab-shell:22"
+{{- end }}
