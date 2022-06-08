@@ -40,6 +40,7 @@ can be installed separately.
   - [PostgreSQL](https://artifacthub.io/packages/helm/bitnami/postgresql)
   - [Redis](https://artifacthub.io/packages/helm/bitnami/redis)
   - [MinIO](charts/minio/index.md)
+  - [HAProxy](charts/haproxy/index.md)
 - Optional additions:
   - [Prometheus](https://artifacthub.io/packages/helm/prometheus-community/prometheus)
   - [Grafana](https://artifacthub.io/packages/helm/grafana/grafana)
