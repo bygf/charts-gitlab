@@ -1,12 +1,12 @@
 {{- if eq .Values.global.ingress.provider "haproxy" -}}
+{{- $port := include "gitlab.shell.port" . | int -}}
+{{- $tcpProxyProtocol := include "gitlab.shell.tcp.proxyProtocol" . -}}
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: {{ .Release.Name }}-haproxy-tcp
   namespace: {{ .Release.Namespace }}
 data:
-  # Port where the frontend is going to listen to.
-  #   Kubernetes service in the format NS/ServiceName:ServicePort
-  22:
-    "{{ .Release.Namespace }}/{{ .Release.Name }}-gitlab-shell:22"
+  # https://haproxy-ingress.github.io/docs/configuration/command-line/#tcp-services-configmap
+  {{ $port | quote }}: "{{ .Release.Namespace }}/{{ template "fullname" . }}:{{ $port }}{{ $tcpProxyProtocol }}"
 {{- end }}
