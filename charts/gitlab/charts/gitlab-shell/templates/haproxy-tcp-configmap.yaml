@@ -4,7 +4,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ .Release.Name }}-haproxy-tcp
+  name: {{ .Release.Namespace }}-haproxy-tcp
   namespace: {{ .Release.Namespace }}
 data:
   # https://haproxy-ingress.github.io/docs/configuration/command-line/#tcp-services-configmap

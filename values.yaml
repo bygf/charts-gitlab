@@ -834,8 +834,7 @@ haproxy:
           port: 22
           targetPort: 22
     extraArgs:
-      # TODO: replace 'gitlab' with Release namespace
-      - --configmap-tcp-services=$(POD_NAMESPACE)/gitlab-haproxy-tcp
+      - --configmap-tcp-services=$(POD_NAMESPACE)/$(POD_NAMESPACE)-haproxy-tcp
 
 ## Installation & configuration of stable/prometheus
 ## See requirements.yaml for current version
