@@ -29,7 +29,7 @@ default:
 
 variables:
   AUTO_DEPLOY_TAG_REGEX: '^[0-9]+\.[0-9]+\.[0-9]+\+[a-z0-9]{7,}$'
-  KUBECTL_VERSION: "v1.16.15"
+  KUBECTL_VERSION: "1.23.0"
   HELM_VERSION: "3.3.1"
   STABLE_REPO_URL: "https://charts.helm.sh/stable"
   GOOGLE_APPLICATION_CREDENTIALS: ${CI_PROJECT_DIR}/.google_keyfile.json
@@ -49,6 +49,8 @@ variables:
   QA_SANITY_SUITE_OPTIONS: '--tag smoke --tag reliable --tag ~skip_live_env --tag ~orchestrated'
   DEBIAN_VERSION: bullseye
   RUBY_VERSION: "3.0"
+  # STRICT_VERSIONS is used in RSpecs to ensure exact version match for tools like "helm" and "kubectl"
+  # STRICT_VERSIONS: false
 
 stages:
   - prepare
@@ -624,7 +626,8 @@ review-docs-cleanup:
 # ---------------------------------------------------------------------------
 
 .specs: &specs
-  image: registry.gitlab.com/gitlab-org/gitlab-build-images/debian-${DEBIAN_VERSION}-ruby-${RUBY_VERSION}.patched-golang-${GO_VERSION}-rust-${RUST_VERSION}-node-16.14-postgresql-${PG_VERSION}:rubygems-${RUBYGEMS_VERSION}-git-2.36-lfs-2.9-chrome-${CHROME_VERSION}-yarn-1.22-graphicsmagick-1.3.36
+  # image: registry.gitlab.com/gitlab-org/gitlab-build-images/debian-${DEBIAN_VERSION}-ruby-${RUBY_VERSION}.patched-golang-${GO_VERSION}-rust-${RUST_VERSION}-node-16.14-postgresql-${PG_VERSION}:rubygems-${RUBYGEMS_VERSION}-git-2.36-lfs-2.9-chrome-${CHROME_VERSION}-yarn-1.22-graphicsmagick-1.3.36
+  image: registry.gitlab.com/gitlab-org/gitlab-build-images/debian-${DEBIAN_VERSION}-ruby-${RUBY_VERSION}.patched-golang-1.18-node-16.14-postgresql-11:git-2.33-lfs-2.9-chrome-109-yarn-1.22-graphicsmagick-1.3.36-kubectl-1.23-helm-3.5
   stage: specs
   services:
   - docker:dind
