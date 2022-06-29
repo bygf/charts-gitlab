@@ -51,6 +51,10 @@ Due to gotpl scoping, we can't make use of `range`, so we have to add action lin
 {{- $messages = append $messages (include "gitlab.checkConfig.gitaly.extern.repos" .) -}}
 {{- $messages = append $messages (include "gitlab.checkConfig.praefect.storageNames" .) -}}
 
+{{/* _checkConfig_ingress.tpl*/}}
+{{- $messages = append $messages (include "gitlab.checkConfig.ingress.alternatives" .) -}}
+{{- $messages = append $messages (include "gitlab.checkConfig.ingress.class" .) -}}
+
 {{/* _checkConfig_nginx.tpl*/}}
 {{- $messages = append $messages (include "gitlab.checkConfig.nginx.controller.extraArgs" .) -}}
 {{- $messages = append $messages (include "gitlab.checkConfig.nginx.clusterrole.scope" .) -}}
