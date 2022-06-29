@@ -18,3 +18,11 @@ nginx-ingress:
 {{-   end -}}
 {{- end -}}
 {{/* END "gitlab.checkConfig.nginx.clusterrole" */}}
+
+{{- define "gitlab.checkConfig.nginx.haproxy" -}}
+{{-   if and (index $.Values "nginx-ingress").enabled $.Values.haproxy.enabled -}}
+nginx-ingress:
+  HAProxy is enabled via `haproxy.enabled=true`.
+  Please disable NGINX via `nginx-ingress.enabled=false`
+{{-   end -}}
+{{- end -}}
