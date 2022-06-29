@@ -14,7 +14,7 @@ Traefik will [translate the native Kubernetes Ingress](https://doc.traefik.io/tr
 
 Traefik also supports Git over SSH via
 [IngressRouteTCP](https://doc.traefik.io/traefik/routing/providers/kubernetes-crd/#kind-ingressroutetcp)
-objects, which are deployed by the GitLab Shell chart when `global.ingress.provider=traefik`.
+objects, which are deployed by the GitLab Shell chart when [global.ingress.provider](https://docs.gitlab.com/charts/charts/globals#configure-ingress-settings) is configured as `traefik`.
 
 ## Configuring Traefik
 
@@ -32,7 +32,7 @@ for common configuration options, such as GitLab and Registry hostnames.
 ### FIPS-compliant Traefik
 
 [Traefik Enterprise](https://doc.traefik.io/traefik-enterprise) provides FIPS compliance. Note that Traefik Enterprise requires
-a license.
+a license, which is not included as part of this chart.
 
 Following are links for more information on Traefik Enterprise:
 
