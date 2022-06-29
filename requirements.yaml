@@ -38,5 +38,5 @@ dependencies:
 - name: kubernetes-ingress
   alias: haproxy
   version: 1.22.0
-  condition: haproxy.enabled
+  condition: haproxy.install
   repository: https://haproxytech.github.io/helm-charts

@@ -1,7 +1,7 @@
 {{- define "gitlab.checkConfig.ingress.alternatives" -}}
-{{-   if and (index $.Values "nginx-ingress").enabled $.Values.haproxy.enabled -}}
+{{-   if and (index $.Values "nginx-ingress").enabled $.Values.haproxy.install -}}
 ingress:
-  HAProxy is also enabled via `haproxy.enabled=true`.
+  HAProxy is also enabled via `haproxy.install=true`.
   Please disable NGINX via `nginx-ingress.enabled=false`.
 {{-   end -}}
 {{- end -}}
@@ -13,10 +13,10 @@ ingress:
 {{-     $current = $defaultClass -}}
 {{-   end -}}
 {{-   $expected := $defaultClass -}}
-{{-   if $.Values.haproxy.enabled -}}
+{{-   if $.Values.haproxy.install -}}
 {{-     $expected = "haproxy" -}}
 {{-   end -}}
-{{-   if or (index $.Values "nginx-ingress").enabled $.Values.haproxy.enabled -}}
+{{-   if or (index $.Values "nginx-ingress").enabled $.Values.haproxy.install -}}
 {{-     if ne $current $expected -}}
 ingress:
   Current ingress class is `{{ $current }}`.

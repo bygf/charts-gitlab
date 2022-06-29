@@ -13,4 +13,4 @@ nginx-ingress:
   enabled: false
 
 haproxy:
-  enabled: true
+  install: true

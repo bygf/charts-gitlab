@@ -825,7 +825,7 @@ nginx-ingress:
     create: true
 
 haproxy:
-  enabled: false
+  install: false
   controller:
     service:
       type: LoadBalancer
