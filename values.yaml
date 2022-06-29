@@ -1129,7 +1129,7 @@ grafana:
     enabled: false
 
 traefik:
-  enabled: false
+  install: false
   ports:
     gitlab-shell:
       expose: true

@@ -22,7 +22,7 @@ nginx-ingress:
   enabled: false
 
 traefik:
-  enabled: true
+  install: true
   # Ensure the IngressClass name and `global.ingress.class` value match.
   # This can be removed if `global.ingress.class` is set to `$releaseName-traefik`.
   fullnameOverride: traefik

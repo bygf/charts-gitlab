@@ -37,5 +37,5 @@ dependencies:
   version: '*.*.*'
 - name: traefik
   repository: https://helm.traefik.io/traefik
-  condition: traefik.enabled
+  condition: traefik.install
   version: 10.19.4
