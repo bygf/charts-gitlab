@@ -7,20 +7,11 @@ ingress:
 {{- end -}}
 
 {{- define "gitlab.checkConfig.ingress.class" -}}
-{{-   $defaultClass := printf "%s-nginx" $.Release.Name -}}
-{{-   $current := $.Values.global.ingress.class -}}
-{{-   if not $current -}}
-{{-     $current = $defaultClass -}}
-{{-   end -}}
-{{-   $expected := $defaultClass -}}
 {{-   if $.Values.haproxy.install -}}
-{{-     $expected = "haproxy" -}}
-{{-   end -}}
-{{-   if or (index $.Values "nginx-ingress").enabled $.Values.haproxy.install -}}
-{{-     if ne $current $expected -}}
+{{-     if ne $.Values.global.ingress.class "haproxy" -}}
 ingress:
-  Current ingress class is `{{ $current }}`.
-  Ingress class should be set to `global.ingress.class={{ $expected }}`.
+  HAProxy is enabled.
+  Please set `global.ingress.class=haproxy`.
 {{-     end -}}
 {{-   end -}}
 {{- end -}}
