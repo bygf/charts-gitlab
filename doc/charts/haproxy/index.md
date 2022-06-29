@@ -12,6 +12,10 @@ The [HAProxy Helm Chart](https://github.com/haproxytech/helm-charts/tree/main/ku
 
 HAProxy will also support Git over SSH.
 
+We default to [NGINX](../nginx/index.md) mostly due to historical experience with the tool, but HAProxy is a valid alternative that may be
+preferable to those who have more experience with HAProxy specifically. Additionally, it offers [FIPS compliance](#fips-compliant-haproxy)
+while the [NGINX Ingress controller](https://github.com/kubernetes/ingress-nginx) currently does not.
+
 ## Configuring HAProxy
 
 See the [HAProxy Helm chart documentation](https://www.haproxy.com/documentation/kubernetes/latest/configuration)
