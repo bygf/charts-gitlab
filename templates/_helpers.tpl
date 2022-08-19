@@ -326,7 +326,7 @@ Defaults to nil
 */}}
 {{- define "gitlab.psql.keepalivesCount" -}}
 {{- $local := pluck "psql" $.Values | first -}}
-{{ pluck "keepalivesCount" $local .Values.global.psql | first -}}
+{{- pluck "keepalivesCount" $local .Values.global.psql | first -}}
 {{- end -}}
 
 {{/*
@@ -335,7 +335,30 @@ Defaults to nil
 */}}
 {{- define "gitlab.psql.tcpUserTimeout" -}}
 {{- $local := pluck "psql" $.Values | first -}}
-{{ pluck "tcpUserTimeout" $local .Values.global.psql | first -}}
+{{- pluck "tcpUserTimeout" $local .Values.global.psql | first -}}
+{{- end -}}
+
+{{- define "gitlab.psql.ssl.enabled" -}}
+{{- $local := pluck "psql" $.Values.local | first -}}
+{{- pluck "clientCertificate" $local .Values.global.psql | first -}}
+{{- end -}}
+
+
+{{- define "gitlab.psql.ssl.serverCA" -}}
+{{- $local := pluck "psql" $.Values | first -}}
+{{ default (get $local "sslrootcert") .Values.global.psql.ssl.serverCA }}
+{{- end -}}
+
+
+{{- define "gitlab.psql.ssl.clientCertificate" -}}
+{{- $local := pluck "psql" $.Values | first -}}
+{{ default (get $local "ssslcert") .Values.global.psql.ssl.clientCertificate }}
+{{- end -}}
+
+
+{{- define "gitlab.psql.ssl.clientKey" -}}
+{{- $local := pluck "psql" $.Values | first -}}
+{{ default (get $local "sslkey") .Values.global.psql.ssl.clientKey }}
 {{- end -}}
 
 {{/* ######### ingress templates */}}

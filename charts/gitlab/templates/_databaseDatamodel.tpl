@@ -22,6 +22,8 @@ Removed:
 {{/*
 database.datamodel.prepare
 
+Documented in doc/development/datamodels.md with examples.
+
 Result:
   `.Values.local.psql` contains a fully composed datamodel of psql properties
   to be passed as the context to other helpers. Which Schema you are in can
@@ -32,7 +34,7 @@ How:
   - ensure `main` exists in both global and local, if not present.
   - mergeOverwrite `.global.psql` `.global.psql.x`
   - mergeOverwrite `.psql` `.psql.x`
-  - build $context dict, with .Release .Values.global.psql .Values.psql 
+  - build $context dict, with .Release .Values.global.psql .Values.psql
 
 Example object -
   local:
@@ -55,9 +57,12 @@ Example object -
 {{- define "database.datamodel.prepare" -}}
 {{- if not (hasKey (get $.Values "local" | default (dict)) "psql") -}}
 {{-   $_ := set $.Values "local" (dict "psql" (dict)) -}}
-{{-   $global := mergeOverwrite (deepCopy $.Values.global.psql) (deepCopy (get $.Values.global.psql "main" | default (dict))) -}}
+{{-   $global_legacy := deepCopy $.Values.global.psql -}}
+{{-   $global_decomposed := deepCopy (get $.Values.global.psql "main" | default (dict)) -}}
+{{-   $global := mergeOverwrite $global_legacy $global_decomposed -}}
 {{-   $globalBlank := fromYaml (include "database.datamodel.blank" $global) -}}
 {{-   $_ := set $global "main" (deepCopy (get $.Values.global.psql "main" | default $globalBlank)) -}}
+{{/*  At this point the load_balance settings should be killed off */}}
 {{-   $local  := mergeOverwrite (deepCopy $.Values.psql) (deepCopy (get $.Values.psql "main") | default (dict)) -}}
 {{-   $localBlank := fromYaml (include "database.datamodel.blank" $local) -}}
 {{-   $_ := set $local "main" (deepCopy (get $.Values.psql "main" | default $localBlank))  -}}

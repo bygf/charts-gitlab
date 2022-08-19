@@ -59,8 +59,6 @@ describe 'Database configuration' do
     end
   end
 
-  context
-
   describe 'global.psql settings' do
     context 'when psql.database set globally' do
       let(:global_values) do
