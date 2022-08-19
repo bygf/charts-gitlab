@@ -22,8 +22,8 @@ data:
       tls:
         certificate: /etc/docker/registry/tls/tls.crt
         key: /etc/docker/registry/tls/tls.key
-        {{- if kindIs "slice" .Values.tls.clientCAs }}
-        clientCAs: {{ toYaml .Values.tls.clientCAs | nindent 10 }}
+        {{- if and .Values.tls.clientCAs (kindIs "slice" .Values.tls.clientCAs) }}
+        clientCAs: {{- toYaml .Values.tls.clientCAs | nindent 10 }}
         {{- end }}
         minimumTLS: {{ default "tls1.2" .Values.tls.minimumTLS | quote }}
       {{- end }}
@@ -148,6 +148,7 @@ data:
     {{- include "registry.database.config" $ | nindent 4 }}
     {{- include "registry.gc.config" $ | nindent 4 }}
     {{- include "registry.migration.config" $ | nindent 4 }}
+    {{- include "registry.redis.config" $ | nindent 4}}
 
   # minimal configuration, in order to do database migrations
   migrations-config.yml: |

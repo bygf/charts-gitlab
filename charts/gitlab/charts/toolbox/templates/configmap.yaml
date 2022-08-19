@@ -107,7 +107,7 @@ data:
         {{- toYaml .Values.extra | nindent 8 }}
         {{- end }}
   configure: |
-    {{- include "gitlab.scripts.configure.secrets" (dict "required" "shell gitaly registry rails-secrets") | nindent 4 -}}
+    {{- include "gitlab.scripts.configure.secrets" (dict "required" "shell gitaly registry rails-secrets") | nindent 4 }}
     {{- include "gitlab.psql.ssl.initScript" . | nindent 4 }}
     {{- include "gitlab.geo.psql.ssl.initScript" . | nindent 4 }}
 

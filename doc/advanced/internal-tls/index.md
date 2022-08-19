@@ -149,7 +149,7 @@ you can query Kubernetes for those names:
 
 ## Configuration
 
-Example configurations can be found in [examples/internal-tls](https://gitlab.com/gitlab-org/charts/gitlab/-/blob/docs-internal-tls/examples/internal-tls/).
+Example configurations can be found in [examples/internal-tls](https://gitlab.com/gitlab-org/charts/gitlab/-/blob/master/examples/internal-tls/).
 
 For the purposes of this documentation, we have provided `shared-cert-values.yaml`
 which configures the GitLab components to consume the certificates generated with

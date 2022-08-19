@@ -79,6 +79,15 @@ global:
   hpa:
     apiVersion: ""
 
+  # Override the API version to use for PodDisruptionBudget
+  pdb:
+    apiVersion: ""
+
+  # Override the API version to use for CronJob
+  batch:
+    cronJob:
+      apiVersion: ""
+
   gitlab:
     ## Enterprise license for this GitLab installation
     ## Secret created according to https://docs.gitlab.com/charts/installation/secrets#initial-enterprise-license
@@ -537,6 +546,9 @@ global:
     notificationSecret: {}
       # secret:
       # key:
+    redis:
+      cache:
+        password: {}
     # https://docs.docker.com/registry/notifications/#configuration
     notifications: {}
       # endpoints:
@@ -667,6 +679,13 @@ global:
     customCAs: []
     # - secret: custom-CA
     # - secret: more-custom-CAs
+    #   keys:
+    #     - custom-ca-1.crt
+    # - configMap: custom-CA-cm
+    # - configMap: more-custom-CAs-cm
+    #   keys:
+    #     - custom-ca-2.crt
+    #     - custom-ca-3.crt
 
   ## kubectl image used by hooks to carry out specific jobs
   kubectl:

@@ -129,7 +129,7 @@ data:
           address: 0.0.0.0
           port: {{ .Values.health_checks.port }}
   configure: |
-    {{- include "gitlab.scripts.configure.secrets" (dict "required" "gitaly registry rails-secrets") | nindent 4 -}}
+    {{- include "gitlab.scripts.configure.secrets" (dict "required" "gitaly registry rails-secrets") | nindent 4 }}
     {{- if $.Values.metrics.tls.enabled }}
       mkdir -p /init-secrets/sidekiq-metrics
       cp -v -L /init-config/sidekiq-metrics/sidekiq-metrics.crt /init-secrets/sidekiq-metrics/sidekiq-metrics.crt
