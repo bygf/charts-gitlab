@@ -62,7 +62,6 @@ Example object -
 {{-   $global := mergeOverwrite $global_legacy $global_decomposed -}}
 {{-   $globalBlank := fromYaml (include "database.datamodel.blank" $global) -}}
 {{-   $_ := set $global "main" (deepCopy (get $.Values.global.psql "main" | default $globalBlank)) -}}
-{{/*  At this point the load_balance settings should be killed off */}}
 {{-   $local  := mergeOverwrite (deepCopy $.Values.psql) (deepCopy (get $.Values.psql "main") | default (dict)) -}}
 {{-   $localBlank := fromYaml (include "database.datamodel.blank" $local) -}}
 {{-   $_ := set $local "main" (deepCopy (get $.Values.psql "main" | default $localBlank))  -}}
