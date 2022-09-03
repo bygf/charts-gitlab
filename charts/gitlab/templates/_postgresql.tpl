@@ -16,16 +16,14 @@ Returns volume definition of a secret containing information required for
 a mutual TLS connection.
 */}}
 {{- define "gitlab.psql.ssl.volume" -}}
-{{/* TODO: Need to pull ssl values from data model */}}
 {{-   include "database.datamodel.prepare" . -}}
-{{-   $sslenabled := include "gitlab.psql.ssl.enabled" . -}}
-{{-   if .Values.global.psql.ssl.secret }}
+{{-   if (eq (include "gitlab.psql.ssl.enabled" .) "true") }}
 - name: postgresql-ssl-secrets
   projected:
     defaultMode: 400
     sources:
     - secret:
-        name: {{ .Values.global.psql.ssl.secret | required "Missing required secret containing SQL SSL certificates and keys. Make sure to set `global.psql.ssl.secret` or `.ssl.secret` in database settings" }}
+        name: {{ include "gitlab.psql.ssl.secret" . | required "Missing required secret containing SQL SSL certificates and keys. Make sure to set `global.psql.ssl.secret` or `.ssl.secret` in database settings" }}
         items:
           - key: {{ include "gitlab.psql.ssl.serverCA" . | required "Missing required key name of SQL server certificate. Make sure to set `global.psql.ssl.serverCA` or `.ssl.serverCA` in database settings" }}
             path: server-ca.pem

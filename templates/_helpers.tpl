@@ -338,27 +338,53 @@ Defaults to nil
 {{- pluck "tcpUserTimeout" $local .Values.global.psql | first -}}
 {{- end -}}
 
+{{/*
+Return true/false when psql ssl settings present
+Defaults to false
+*/}}
 {{- define "gitlab.psql.ssl.enabled" -}}
-{{- $local := pluck "psql" $.Values.local | first -}}
-{{- pluck "clientCertificate" $local .Values.global.psql | first -}}
+{{-   $local := pluck "ssl" .Values.local.psql | first -}}
+{{-   $global := pluck "ssl" $.Values.global.psql | first -}}
+{{-   $cert := pluck "clientCertificate" $local $global | first -}}
+{{-   if $cert -}}
+{{-     "true" -}}
+{{-   else -}}
+{{-     "false" -}}
+{{-   end -}}
 {{- end -}}
 
+{{/* TODO: Need to pull ssl values from data model */}}
 
+{{/*
+Return psql secret name
+*/}}
+{{- define "gitlab.psql.ssl.secret" -}}
+{{-   $local := pluck "psql" $.Values | first -}}
+{{    default (get $local "secret") .Values.global.psql.ssl.secret }}
+{{- end -}}
+
+{{/*
+Return psql server CA filename
+*/}}
 {{- define "gitlab.psql.ssl.serverCA" -}}
-{{- $local := pluck "psql" $.Values | first -}}
-{{ default (get $local "sslrootcert") .Values.global.psql.ssl.serverCA }}
+{{-   $local := pluck "psql" $.Values | first -}}
+{{    default (get $local "sslrootcert") .Values.global.psql.ssl.serverCA }}
 {{- end -}}
 
-
+{{/*
+Return psql client cert filename
+*/}}
 {{- define "gitlab.psql.ssl.clientCertificate" -}}
-{{- $local := pluck "psql" $.Values | first -}}
-{{ default (get $local "ssslcert") .Values.global.psql.ssl.clientCertificate }}
+{{-   $local := pluck "psql" $.Values | first -}}
+{{    default (get $local "ssslcert") .Values.global.psql.ssl.clientCertificate }}
 {{- end -}}
 
-
+{{/*
+Return psql client private key
+*/}}
 {{- define "gitlab.psql.ssl.clientKey" -}}
-{{- $local := pluck "psql" $.Values | first -}}
-{{ default (get $local "sslkey") .Values.global.psql.ssl.clientKey }}
+{{-   $local := pluck "psql" $.Values | first -}}
+{{    default (get $local "sslkey") .Values.global.psql.ssl.clientKey }}
 {{- end -}}
 
 {{/* ######### ingress templates */}}
