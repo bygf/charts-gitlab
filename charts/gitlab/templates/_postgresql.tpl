@@ -3,12 +3,13 @@ Returns parts for a Gitlab configuration to setup a mutual TLS connection
 with the PostgreSQL database.
 */}}
 {{- define "gitlab.psql.ssl.config" -}}
-{{- if or .ssl .Values.global.psql.ssl }}
+{{-   include "database.datamodel.prepare" . -}}
+{{-   if (eq (include "gitlab.psql.ssl.enabled" .) "true") }}
 sslmode: verify-ca
 sslrootcert: '/etc/gitlab/postgres/ssl/server-ca.pem'
 sslcert: '/etc/gitlab/postgres/ssl/client-certificate.pem'
 sslkey: '/etc/gitlab/postgres/ssl/client-key.pem'
-{{- end -}}
+{{-   end -}}
 {{- end -}}
 
 {{/*
@@ -38,11 +39,12 @@ a mutual TLS connection.
 Returns mount definition for the volume mount definition above.
 */}}
 {{- define "gitlab.psql.ssl.volumeMount" -}}
-{{- if or .ssl .Values.global.psql.ssl }}
+{{-   include "database.datamodel.prepare" . -}}
+{{-   if (eq (include "gitlab.psql.ssl.enabled" .) "true") }}
 - name: postgresql-ssl-secrets
   mountPath: '/etc/postgresql/ssl/'
   readOnly: true
-{{- end -}}
+{{-   end -}}
 {{- end -}}
 
 {{/*
@@ -51,14 +53,15 @@ container to copy the mutual TLS files to the proper location. Further
 it sets the permissions correctly.
 */}}
 {{- define "gitlab.psql.ssl.initScript" -}}
-{{- if or .ssl .Values.global.psql.ssl }}
+{{-   include "database.datamodel.prepare" . -}}
+{{-   if (eq (include "gitlab.psql.ssl.enabled" .) "true") }}
 if [ -d /etc/postgresql/ssl ]; then
   mkdir -p /${secret_dir}/postgres/ssl
   cp -v -r -L /etc/postgresql/ssl/* /${secret_dir}/postgres/ssl/
   chmod 600 /${secret_dir}/postgres/ssl/*
   chmod 700 /${secret_dir}/postgres/ssl
 fi
-{{- end -}}
+{{-   end -}}
 {{- end -}}
 {{/*
 Returns the K8s Secret definition for the PostgreSQL password.
