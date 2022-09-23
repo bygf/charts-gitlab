@@ -20,9 +20,10 @@ The PostgreSQL data model is instantiated with the following:
 {{- include "database.datamodel.prepare" . -}}
 ```
 
-This would be needed to be called in any Helm template file that needs to
-access the PostgreSQL data model. It will examine the computed `.Values` and
-generate the PostgreSQL data model in the current context.
+This must be called in any Helm template file that needs to access the PostgreSQL data model. It:
+
+1. Examines the computed `.Values`.
+1. Generates the PostgreSQL data model in the current context.
 
 The data model can be dumped and viewed with the following command:
 
@@ -34,7 +35,7 @@ helm template . -f ... --set global.debugDatabaseDatamodel=true \
 
 ### Traditional PostgreSQL configuration
 
-Most installations use a single PostgreSQL database and will have the
+Most installations use a single PostgreSQL database and have the
 configuration specified as:
 
 ```yaml
@@ -52,10 +53,10 @@ postgresql:
   install: false
 ```
 
-The resulting data model will be generated. Note that `main` is used for
-the primary database connection. Additional database connections are
-created under additional attributes as shown in the decomposed database
-configuration later.
+The resulting data model is generated:
+
+- `main` is used for the primary database connection.
+- Additional database connections are created under additional attributes shown in the decomposed database configuration.
 
 ```yaml
 <CONTEXT>:
@@ -85,8 +86,7 @@ configuration later.
 
 ### Decomposed PostgreSQL configuration
 
-If one is using a decomposed database configuration, then the values for
-the database configuration will be similar to:
+If you use a decomposed database configuration, the values for the database configuration is similar to:
 
 ```yaml
 global:
@@ -112,8 +112,7 @@ postgresql:
   install: false
 ```
 
-The resulting data model for a decomposed database configuration is as
-follows:
+The resulting data model for a decomposed database configuration is:
 
 ```yaml
 <CONTEXT>:
