@@ -81,30 +81,8 @@ describe 'registry configuration' do
     end
 
     context 'when enabled without configuration' do
-      let(:values) do
-        YAML.safe_load(%(
-          registry:
-            tls:
-              enabled: true
-        )).deep_merge(default_values)
-      end
-
-      it 'fails to render' do
-        expect(HelmTemplate.new(tls_values).exit_code).not_to eq(0)
-      end
-    end
-
-    context 'when provided minimum configuration' do
-      let(:values) do
-        YAML.safe_load(%(
-          registry:
-            tls:
-              secretName: registry-service-tls
-        )).deep_merge(tls_values)
-      end
-
       it 'renders default configuration, volume content, ingress annotations, port definitions' do
-        t = HelmTemplate.new(values)
+        t = HelmTemplate.new(tls_values)
         expect(t.exit_code).to eq(0), "Unexpected error code #{t.exit_code} -- #{t.stderr}"
 
         expect(t.dig('ConfigMap/test-registry', 'data', 'config.yml')).to include(
@@ -120,7 +98,7 @@ describe 'registry configuration' do
           TLS_CONFIG
         )
 
-        tls_crt = t.find_projected_secret_key('Deployment/test-registry', 'registry-secrets', 'registry-service-tls', 'tls.crt')
+        tls_crt = t.find_projected_secret_key('Deployment/test-registry', 'registry-secrets', 'test-registry-tls', 'tls.crt')
         expect(tls_crt).not_to be_empty
 
         ingress_annotations = t.annotations('Ingress/test-registry')
@@ -211,7 +189,6 @@ describe 'registry configuration' do
               cache:
                 enabled: true
                 addr: "global.redis.example.com:16379"
-                password: "REDIS_CACHE_PASSWORD"
             CONFIG
           )
         end
@@ -229,6 +206,10 @@ describe 'registry configuration' do
                   host: redis.example.com
                   port: 12345
                   db: 0
+                  password:
+                    enabled: true
+                    secret: registry-redis-cache-secret
+                    key: password
                   dialtimeout: 10ms
                   readtimeout: 10ms
                   writetimeout: 10ms
@@ -265,6 +246,9 @@ describe 'registry configuration' do
                   idletimeout: 300s
             CONFIG
           )
+
+          cache_secret = t.find_projected_secret_key('Deployment/test-registry', 'registry-secrets', 'registry-redis-cache-secret', 'password')
+          expect(cache_secret).not_to be_empty
         end
       end
 
@@ -290,13 +274,12 @@ describe 'registry configuration' do
               cache:
                 enabled: true
                 addr: "redis.example.com:6379"
-                password: "REDIS_CACHE_PASSWORD"
             CONFIG
           )
         end
       end
 
-      context 'when customer provides a custom redis cache configuration with using sentinels' do
+      context 'when customer provides a custom redis cache configuration with global sentinels' do
         let(:values) do
           YAML.safe_load(%(
             global:
@@ -324,12 +307,244 @@ describe 'registry configuration' do
             redis:
               cache:
                 enabled: true
-                addr:  "sentinel1.example.com:26379,sentinel2.example.com:26379"
-                mainName: redis.example.com
-                password: "REDIS_CACHE_PASSWORD"
+                addr: "sentinel1.example.com:26379,sentinel2.example.com:26379"
+                mainname: redis.example.com
             CONFIG
           )
         end
+      end
+
+      context 'when customer provides a custom redis cache configuration with local sentinels' do
+        let(:values) do
+          YAML.safe_load(%(
+            registry:
+              database:
+                enabled: true
+              redis:
+                cache:
+                  enabled: true
+                  host: redis.example.com
+                  sentinels:
+                    - host: sentinel1.example.com
+                      port: 26379
+                    - host: sentinel2.example.com
+                      port: 26379
+        )).deep_merge(default_values)
+        end
+
+        it 'populates the redis cache settings in the expected manner' do
+          t = HelmTemplate.new(values)
+          expect(t.exit_code).to eq(0), "Unexpected error code #{t.exit_code} -- #{t.stderr}"
+          expect(t.dig('ConfigMap/test-registry', 'data', 'config.yml')).to include(
+            <<~CONFIG
+            redis:
+              cache:
+                enabled: true
+                addr: "sentinel1.example.com:26379,sentinel2.example.com:26379"
+                mainname: redis.example.com
+            CONFIG
+          )
+        end
+      end
+
+      context 'when customer provides a custom redis cache configuration with local and global sentinels' do
+        let(:values) do
+          YAML.safe_load(%(
+            global:
+              redis:
+                host: redis.example.com
+                sentinels:
+                  - host: global1.example.com
+                    port: 26379
+                  - host: global2.example.com
+                    port: 26379
+            registry:
+              database:
+                enabled: true
+              redis:
+                cache:
+                  enabled: true
+                  host: local.example.com
+                  sentinels:
+                    - host: local1.example.com
+                      port: 26379
+                    - host: local2.example.com
+                      port: 26379
+        )).deep_merge(default_values)
+        end
+
+        it 'populates the redis cache settings with the local sentinels' do
+          t = HelmTemplate.new(values)
+          expect(t.exit_code).to eq(0), "Unexpected error code #{t.exit_code} -- #{t.stderr}"
+          expect(t.dig('ConfigMap/test-registry', 'data', 'config.yml')).to include(
+            <<~CONFIG
+            redis:
+              cache:
+                enabled: true
+                addr: "local1.example.com:26379,local2.example.com:26379"
+                mainname: local.example.com
+            CONFIG
+          )
+        end
+      end
+    end
+  end
+
+  describe 'debug TLS is configured' do
+    context 'when enabled without required configuration' do
+      let(:test_values) do
+        YAML.safe_load(%(
+          registry:
+            debug:
+              tls:
+                enabled: true
+        )).deep_merge(default_values)
+      end
+
+      it 'fails to render' do
+        expect(HelmTemplate.new(test_values).exit_code).not_to eq(0)
+      end
+    end
+
+    context 'when enabled and service tls is configured' do
+      let(:test_values) do
+        YAML.safe_load(%(
+          global:
+            hosts:
+              registry:
+                protocol: https
+          registry:
+            tls:
+              enabled: true
+              secretName: registry-service-tls
+            debug:
+              tls:
+                enabled: true
+        )).deep_merge(default_values)
+      end
+
+      it 'renders default debug tls configuration and sets healthcheck scheme to HTTPS' do
+        t = HelmTemplate.new(test_values)
+
+        expect(t.exit_code).to eq(0), "Unexpected error code #{t.exit_code} -- #{t.stderr}"
+
+        expect(t.dig('ConfigMap/test-registry', 'data', 'config.yml')).to include(
+          <<~DEBUG_TLS_CONFIG
+          http:
+            addr: :5000
+            # `host` is not configurable
+            # `prefix` is not configurable
+            tls:
+              certificate: /etc/docker/registry/tls/tls.crt
+              key: /etc/docker/registry/tls/tls.key
+              minimumTLS: "tls1.2"
+            debug:
+              addr: :5001
+              prometheus:
+                enabled: false
+                path: /metrics
+              tls:
+                enabled: true
+          DEBUG_TLS_CONFIG
+        )
+
+        tls_crt = t.find_projected_secret_key('Deployment/test-registry', 'registry-secrets', 'test-registry-tls', 'tls.crt')
+        expect(tls_crt).not_to be_empty
+
+        liveness_probe = t.find_container('Deployment/test-registry', 'registry')['livenessProbe']['httpGet']
+        expect(liveness_probe['scheme']).to eq('HTTPS')
+
+        readiness_probe = t.find_container('Deployment/test-registry', 'registry')['readinessProbe']['httpGet']
+        expect(readiness_probe['scheme']).to eq('HTTPS')
+      end
+    end
+
+    context 'when minimum required configuration provided' do
+      let(:test_values) do
+        YAML.safe_load(%(
+          registry:
+            debug:
+              tls:
+                enabled: true
+                secretName: registry-debug-tls
+        )).deep_merge(default_values)
+      end
+
+      it 'renders default debug tls configuration and sets healthcheck scheme to HTTPS' do
+        t = HelmTemplate.new(test_values)
+
+        expect(t.exit_code).to eq(0), "Unexpected error code #{t.exit_code} -- #{t.stderr}"
+
+        expect(t.dig('ConfigMap/test-registry', 'data', 'config.yml')).to include(
+          <<~DEBUG_TLS_CONFIG
+          http:
+            addr: :5000
+            # `host` is not configurable
+            # `prefix` is not configurable
+            debug:
+              addr: :5001
+              prometheus:
+                enabled: false
+                path: /metrics
+              tls:
+                enabled: true
+                certificate: /etc/docker/registry/tls/tls-debug.crt
+                key: /etc/docker/registry/tls/tls-debug.key
+                minimumTLS: "tls1.2"
+          DEBUG_TLS_CONFIG
+        )
+
+        tls_crt = t.find_projected_secret_key('Deployment/test-registry', 'registry-secrets', 'registry-debug-tls', 'tls.crt')
+        expect(tls_crt).not_to be_empty
+
+        liveness_probe = t.find_container('Deployment/test-registry', 'registry')['livenessProbe']['httpGet']
+        expect(liveness_probe['scheme']).to eq('HTTPS')
+
+        readiness_probe = t.find_container('Deployment/test-registry', 'registry')['readinessProbe']['httpGet']
+        expect(readiness_probe['scheme']).to eq('HTTPS')
+      end
+    end
+
+    context 'when provided extended TLS configuration' do
+      let(:test_values) do
+        YAML.safe_load(%(
+          registry:
+            debug:
+              tls:
+                enabled: true
+                secretName: registry-debug-tls
+                clientCAs: [one, two, three]
+                minimumTLS: "tls1.3"
+        )).deep_merge(default_values)
+      end
+
+      it 'renders configuration as expected' do
+        t = HelmTemplate.new(test_values)
+
+        expect(t.exit_code).to eq(0), "Unexpected error code #{t.exit_code} -- #{t.stderr}"
+
+        expect(t.dig('ConfigMap/test-registry', 'data', 'config.yml')).to include(
+          <<~DEBUG_TLS_CONFIG
+          http:
+            addr: :5000
+            # `host` is not configurable
+            # `prefix` is not configurable
+            debug:
+              addr: :5001
+              prometheus:
+                enabled: false
+                path: /metrics
+              tls:
+                enabled: true
+                certificate: /etc/docker/registry/tls/tls-debug.crt
+                key: /etc/docker/registry/tls/tls-debug.key
+                clientCAs:
+                  - one
+                  - two
+                  - three
+                minimumTLS: "tls1.3"
+          DEBUG_TLS_CONFIG
+        )
       end
     end
   end

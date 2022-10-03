@@ -441,6 +441,21 @@ global:
       providers: []
       # - secret: gitlab-google-oauth2
       #   key: provider
+
+    ## https://docs.gitlab.com/charts/charts/globals#kerberos
+    kerberos:
+      enabled: false
+      keytab:
+        # secret:
+        key: keytab
+      servicePrincipalName: ""
+      krb5Config: ""
+      dedicatedPort:
+        enabled: false
+        port: 8443
+        https: true
+      simpleLdapLinkingAllowedRealms: []
+
     ## https://docs.gitlab.com/charts/charts/globals#configure-appconfig-settings
     sentry:
       enabled: false
@@ -546,6 +561,9 @@ global:
     notificationSecret: {}
       # secret:
       # key:
+    tls:
+      enabled: false
+      # secretName:
     redis:
       cache:
         password: {}
@@ -657,8 +675,8 @@ global:
     ## https://docs.gitlab.com/charts/installation/secrets#gitlab-workhorse-secret
     # secret:
     # key:
-    tls: {}
-      # enabled: true
+    tls:
+      enabled: false
 
   ## https://docs.gitlab.com/charts/charts/globals#configure-webservice
   webservice:

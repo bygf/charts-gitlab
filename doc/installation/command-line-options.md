@@ -1,7 +1,7 @@
 ---
-stage: Enablement
+stage: Systems
 group: Distribution
-info: To determine the technical writer assigned to the Stage/Group associated with this page, see https://about.gitlab.com/handbook/engineering/ux/technical-writing/#designated-technical-writers
+info: To determine the technical writer assigned to the Stage/Group associated with this page, see https://about.gitlab.com/handbook/product/ux/technical-writing/#assignments
 ---
 
 # GitLab Helm chart deployment options **(FREE SELF)**
@@ -435,7 +435,7 @@ settings from the [Redis chart](https://github.com/bitnami/charts/tree/master/bi
 | `gitlab.webservice.workhorse.sentryDSN` | DSN for Sentry instance for error reporting | "" |
 | `gitlab.webservice.workhorse.tag` | Workhorse image tag |  |
 
-## External Charts
+## External charts
 
 GitLab makes use of several other charts. These are [treated as parent-child relationships](https://helm.sh/docs/topics/charts/#chart-dependencies).
 Ensure that any properties you wish to configure are provided as `chart-name.property`.

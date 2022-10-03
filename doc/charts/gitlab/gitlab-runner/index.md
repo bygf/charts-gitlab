@@ -1,7 +1,7 @@
 ---
-stage: Enablement
+stage: Systems
 group: Distribution
-info: To determine the technical writer assigned to the Stage/Group associated with this page, see https://about.gitlab.com/handbook/engineering/ux/technical-writing/#assignments
+info: To determine the technical writer assigned to the Stage/Group associated with this page, see https://about.gitlab.com/handbook/product/ux/technical-writing/#assignments
 ---
 
 # Using the GitLab Runner chart **(FREE SELF)**
@@ -95,4 +95,4 @@ gitlab-runner:
           nameservers = ["8.8.8.8"]
 ```
 
-See the [Runner Chart additional configuration](https://docs.gitlab.com/runner/install/kubernetes.html#additional-configuration).
+See the [Runner chart additional configuration](https://docs.gitlab.com/runner/install/kubernetes.html#additional-configuration).

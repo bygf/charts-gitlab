@@ -29,10 +29,22 @@ data:
       {{- end }}
       {{- if .Values.debug }}
       debug:
-        addr: ':{{ .Values.debug.addr.port | int }}'
+        addr: :{{ .Values.debug.addr.port | int }}
         prometheus:
           enabled: {{ (or .Values.metrics.enabled .Values.debug.prometheus.enabled) }}
           path: {{ default .Values.metrics.path .Values.debug.prometheus.path }}
+        {{- if .Values.debug.tls.enabled }}
+        tls:
+          enabled: true
+          {{- if .Values.debug.tls.secretName }}
+          certificate: /etc/docker/registry/tls/tls-debug.crt
+          key: /etc/docker/registry/tls/tls-debug.key
+          {{-   if and .Values.debug.tls.clientCAs (kindIs "slice" .Values.debug.tls.clientCAs) }}
+          clientCAs: {{- toYaml .Values.debug.tls.clientCAs | nindent 12 }}
+          {{-   end }}
+          minimumTLS: {{ .Values.debug.tls.minimumTLS | quote }}
+          {{- end }}
+        {{- end }}
       {{- end }}
       draintimeout: {{ .Values.draintimeout }}
       headers:
