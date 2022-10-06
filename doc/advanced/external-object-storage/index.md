@@ -1,10 +1,10 @@
 ---
-stage: Enablement
+stage: Systems
 group: Distribution
-info: To determine the technical writer assigned to the Stage/Group associated with this page, see https://about.gitlab.com/handbook/engineering/ux/technical-writing/#designated-technical-writers
+info: To determine the technical writer assigned to the Stage/Group associated with this page, see https://about.gitlab.com/handbook/product/ux/technical-writing/#assignments
 ---
 
-# External object storage
+# Configure the GitLab chart with an external object storage
 
 GitLab relies on object storage for highly-available persistent data in Kubernetes.
 By default, an S3-compatible storage solution named `minio` is deployed with the
@@ -56,8 +56,8 @@ Please refer to the [corresponding Azure example](https://gitlab.com/gitlab-org/
 Although Azure uses the word container to denote a collection of blobs,
 GitLab standardizes on the term bucket.
 
-Azure Blob storage requires the use of the [consolidated object storage
-settings](../../charts/globals.md#consolidated-object-storage). A
+Azure Blob storage requires the use of the
+[consolidated object storage settings](../../charts/globals.md#consolidated-object-storage). A
 single Azure storage account name and key must be used across multiple
 Azure blob containers. Customizing individual `connection` settings by
 object type (for example, `artifacts`, `uploads`, and so on) is not permitted.
@@ -193,12 +193,16 @@ Examples for [AWS](https://fog.io/storage/#using-amazon-s3-and-fog) (any S3 comp
 ## Backups
 
 Backups are also stored in object storage, and must be configured to point
-externally rather than the included MinIO service. The backup/restore procedure makes
-use of two separate buckets. A bucket for storing backups (`global.appConfig.backups.bucket`)
-and a temporary bucket for preserving existing data during the restore process (`global.appConfig.backups.tmpBucket`).
+externally rather than the included MinIO service. The backup/restore procedure uses two separate buckets:
+
+- A bucket for storing backups (`global.appConfig.backups.bucket`)
+- A temporary bucket for preserving existing data during the restore process (`global.appConfig.backups.tmpBucket`)
+
 AWS S3-compatible object storage systems and Google Cloud Storage are supported backends.
-The backend type is configurable by setting `global.appConfig.backups.objectStorage.backend` to `s3` and `gcs` respectively.
-A connection configuration through the `gitlab.toolbox.backups.objectStorage.config` key must also be provided.
+You can configure the backend type by setting `global.appConfig.backups.objectStorage.backend`
+to `s3` for AWS S3 or `gcs` for Google Cloud Storage.
+You must also provide a connection configuration through the `gitlab.toolbox.backups.objectStorage.config` key.
+
 When using Google Cloud Storage, the GCP project must be set with the `global.appConfig.backups.objectStorage.config.gcpProject` value.
 
 For S3-compatible storage:
@@ -281,10 +285,46 @@ configured to authenticate as a user with sufficient access to read/write to all
    kubectl create secret generic storage-config --from-file=config=storage.config
    ```
 
+## Google Cloud CDN
+
+> [Introduced](https://gitlab.com/gitlab-org/gitlab/-/merge_requests/98010) in GitLab 15.5.
+
+You can use [Google Cloud CDN](https://cloud.google.com/cdn) to cache
+and fetch data from the artifacts bucket. This can help improve
+performance and reduce network egress costs.
+
+Configuration of Cloud CDN is done via the following keys:
+
+- `global.appConfig.artifacts.cdn.secret`
+- `global.appConfig.artifacts.cdn.key` (default is `cdn`)
+
+To use Cloud CDN:
+
+1. Set up [Cloud CDN to use the artifacts bucket as the backend](https://cloud.google.com/cdn/docs/setting-up-cdn-with-bucket).
+1. Create a [key for signed URLs](https://cloud.google.com/cdn/docs/using-signed-urls).
+1. Give the [Cloud CDN service account permission to read from the bucket](https://cloud.google.com/cdn/docs/using-signed-urls#configuring_permissions).
+1. Prepare a YAML file with the parameters using the example in [`rails.googlecdn.yaml`](https://gitlab.com/gitlab-org/charts/gitlab/tree/master/examples/objectstorage/cdn/rails.googlecdn.yaml).
+   You will need to fill in the following information:
+    - `url`: Base URL of the CDN host from step 1
+    - `key_name`: Key name from step 2
+    - `key`: The actual secret from step 2
+1. Load this YAML file into a Kubernetes secret under the `cdn` key. For example, to create a secret `gitlab-rails-cdn`:
+
+    ```shell
+    kubectl create secret generic gitlab-rails-cdn --from-file=cdn=rails.googlecdn.yml
+    ```
+
+1. Set `global.appConfig.artifacts.cdn.secret` to `gitlab-rails-cdn`. If you're setting this via a `helm`
+   parameter, use:
+
+    ```shell
+    --set global.appConfig.artifacts.cdn.secret=gitlab-rails-cdn
+    ```
+
 ## Troubleshooting
 
 ### Azure Blob: URL \[FILTERED] is blocked: Requests to the local network are not allowed
 
-This happens when the Azure Blob hostname is resolved to a [RFC1918 (local / private) IP address](https://docs.microsoft.com/en-us/azure/storage/common/storage-private-endpoints#dns-changes-for-private-endpoints). As a workaround,
+This happens when the Azure Blob hostname is resolved to a [RFC1918 (local / private) IP address](https://learn.microsoft.com/en-us/azure/storage/common/storage-private-endpoints#dns-changes-for-private-endpoints). As a workaround,
 allow [Outbound requests](https://docs.gitlab.com/ee/security/webhooks.html#allowlist-for-local-requests)
 for your Azure Blob hostname (`yourinstance.blob.core.windows.net`).

@@ -1,10 +1,10 @@
 ---
-stage: Enablement
+stage: Systems
 group: Distribution
-info: To determine the technical writer assigned to the Stage/Group associated with this page, see https://about.gitlab.com/handbook/engineering/ux/technical-writing/#assignments
+info: To determine the technical writer assigned to the Stage/Group associated with this page, see https://about.gitlab.com/handbook/product/ux/technical-writing/#assignments
 ---
 
-# Using the GitLab-Migrations Chart **(FREE SELF)**
+# Using the GitLab-Migrations chart **(FREE SELF)**
 
 The `migrations` sub-chart provides a single migration [Job](https://kubernetes.io/docs/concepts/workloads/controllers/job/) that handles seeding/migrating the GitLab database. The chart runs using the GitLab Rails codebase.
 
@@ -42,6 +42,7 @@ Table below contains all the possible charts configurations that can be supplied
 | `enabled`                   | Migrations enable flag                   | `true`            |
 | `tolerations`               | Toleration labels for pod assignment     | `[]`              |
 | `annotations`               | Annotations for the job spec             | `{}`              |
+| `podAnnotations`            | Annotations for the pob spec             | `{}`              |
 | `podLabels`                 | Supplemental Pod labels. Will not be used for selectors. |   |
 | `redis.serviceName`         | Redis service name                       | `redis`           |
 | `psql.serviceName`          | Name of Service providing PostgreSQL     | `release-postgresql` |

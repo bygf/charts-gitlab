@@ -1,10 +1,10 @@
 ---
-stage: Enablement
+stage: Systems
 group: Distribution
-info: To determine the technical writer assigned to the Stage/Group associated with this page, see https://about.gitlab.com/handbook/engineering/ux/technical-writing/#designated-technical-writers
+info: To determine the technical writer assigned to the Stage/Group associated with this page, see https://about.gitlab.com/handbook/product/ux/technical-writing/#assignments
 ---
 
-# Managing Persistent Volumes
+# Configure the GitLab chart with persistent volumes
 
 Some of the included services require persistent storage, configured through
 [Persistent Volumes](https://kubernetes.io/docs/concepts/storage/persistent-volumes/#persistent-volumes) that specify which disks your cluster has access to.
@@ -67,10 +67,9 @@ pvc-61bdf136-8c2d-11e8-8267-42010a9a0113  redis
 
 ## Before making storage changes
 
-> **Note**: The person making the changes needs to have administrator access to the cluster,
-> and appropriate access to the storage solutions being used. Often the changes
-> will first need to be applied in the storage solution, then the results need
-> to be updated in Kubernetes.
+The person making the changes needs to have administrator access to the cluster, and appropriate access to the storage
+solutions being used. Often the changes will first need to be applied in the storage solution, then the results need to
+be updated in Kubernetes.
 
 Before making changes, you should ensure your [PersistentVolumes](https://kubernetes.io/docs/concepts/storage/persistent-volumes/#persistent-volumes) are using
 the `Retain` [reclaimPolicy](https://kubernetes.io/docs/concepts/storage/storage-classes/#reclaim-policy) so they don't get removed while you are

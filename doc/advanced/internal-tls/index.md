@@ -1,12 +1,12 @@
 ---
-stage: Enablement
+stage: Systems
 group: Distribution
-info: To determine the technical writer assigned to the Stage/Group associated with this page, see https://about.gitlab.com/handbook/engineering/ux/technical-writing/#designated-technical-writers
+info: To determine the technical writer assigned to the Stage/Group associated with this page, see https://about.gitlab.com/handbook/product/ux/technical-writing/#assignments
 ---
 
-# Using TLS between components
+# Use TLS between components of the GitLab chart
 
-The GitLab Helm charts can use transport-layer security (TLS) between the various
+The GitLab charts can use transport-layer security (TLS) between the various
 components. This requires you to provide certificates for the services
 you want to enable, and configure those services to make use of those
 certificates and the certificate authority (CA) that signed them.
@@ -149,7 +149,7 @@ you can query Kubernetes for those names:
 
 ## Configuration
 
-Example configurations can be found in [examples/internal-tls](https://gitlab.com/gitlab-org/charts/gitlab/-/blob/docs-internal-tls/examples/internal-tls/).
+Example configurations can be found in [examples/internal-tls](https://gitlab.com/gitlab-org/charts/gitlab/-/blob/master/examples/internal-tls/).
 
 For the purposes of this documentation, we have provided `shared-cert-values.yaml`
 which configures the GitLab components to consume the certificates generated with

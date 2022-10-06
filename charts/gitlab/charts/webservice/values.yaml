@@ -189,7 +189,8 @@ workhorse:
     exporter:
       enabled: false
       port: 9229
-      tls: {}
+      tls:
+        enabled: false
   metrics:
     enabled: false
     port: 9229
@@ -285,6 +286,9 @@ global:
       proxy_download: true
       bucket:
       connection: {}
+      # cdn:
+      #   secret:
+      #   key:
     uploads:
       enabled: true
       proxy_download: true

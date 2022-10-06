@@ -1,10 +1,10 @@
 ---
-stage: Enablement
+stage: Systems
 group: Distribution
-info: To determine the technical writer assigned to the Stage/Group associated with this page, see https://about.gitlab.com/handbook/engineering/ux/technical-writing/#assignments
+info: To determine the technical writer assigned to the Stage/Group associated with this page, see https://about.gitlab.com/handbook/product/ux/technical-writing/#assignments
 ---
 
-# Configure Charts using Globals **(FREE SELF)**
+# Configure charts using globals **(FREE SELF)**
 
 To reduce configuration duplication when installing our wrapper Helm chart, several
 configuration settings are available to be set in the `global` section of `values.yaml`.
@@ -37,6 +37,7 @@ for more information on how the global variables work.
 - [extraEnv](#extraenv)
 - [extraEnvFrom](#extraenvfrom)
 - [OAuth](#configure-oauth-settings)
+- [Kerberos](#kerberos)
 - [Outgoing email](#outgoing-email)
 - [Platform](#platform)
 - [Affinity](#affinity)
@@ -121,6 +122,22 @@ The GitLab global host settings for HPA are located under the `global.hpa` key:
 | :----------- | :-------: | :------ | :-------------------------------------------------------------------- |
 | `apiVersion` | String    |         | API version to use in the HorizontalPodAutoscaler object definitions. |
 
+## Configure PodDisruptionBudget settings
+
+The GitLab global host settings for PDB are located under the `global.pdb` key:
+
+| Name         | Type      | Default | Description                                                           |
+| :----------- | :-------: | :------ | :-------------------------------------------------------------------- |
+| `apiVersion` | String    |         | API version to use in the PodDisruptionBudget object definitions. |
+
+## Configure CronJob settings
+
+The GitLab global host settings for CronJobs are located under the `global.batch.cronJob` key:
+
+| Name         | Type      | Default | Description                                                           |
+| :----------- | :-------: | :------ | :-------------------------------------------------------------------- |
+| `apiVersion` | String    |         | API version to use in the CronJob object definitions. |
+
 ## Configure Ingress settings
 
 The GitLab global host settings for Ingress are located under the `global.ingress` key:
@@ -130,7 +147,7 @@ The GitLab global host settings for Ingress are located under the `global.ingres
 | `apiVersion`                   | String  |                | API version to use in the Ingress object definitions.
 | `annotations.*annotation-key*` | String  |                | Where `annotation-key` is a string that will be used with the value as an annotation on every Ingress. For Example: `global.ingress.annotations."nginx\.ingress\.kubernetes\.io/enable-access-log"=true`. No global annotations are provided by default. |
 | `configureCertmanager`         | Boolean | `true`         | [See below](#globalingressconfigurecertmanager). |
-| `class`                        | String  | `gitlab-nginx` | Global setting that controls `kubernetes.io/ingress.class` annotation or `spec.IngressClassName` in `Ingress` resources. Set to `none` to disable, or `""` for empty. Note: for `none` or `""`, set `nginx-ingress.enabled=false` to prevent the Charts from deploying unnecessary Ingress resources. |
+| `class`                        | String  | `gitlab-nginx` | Global setting that controls `kubernetes.io/ingress.class` annotation or `spec.IngressClassName` in `Ingress` resources. Set to `none` to disable, or `""` for empty. Note: for `none` or `""`, set `nginx-ingress.enabled=false` to prevent the charts from deploying unnecessary Ingress resources. |
 | `enabled`                      | Boolean | `true`         | Global setting that controls whether to create Ingress objects for services that support them. |
 | `tls.enabled`                  | Boolean | `true`         | When set to `false`, this disables TLS in GitLab. This is useful for cases in which you cannot use TLS termination of Ingresses, such as when you have a TLS-terminating proxy before the Ingress Controller. If you want to disable https completely, this should be set to `false` together with [`global.hosts.https`](#configure-host-settings). |
 | `tls.secretName`               | String  |                | The name of the [Kubernetes TLS Secret](https://kubernetes.io/docs/concepts/services-networking/ingress/#tls) that contains a **wildcard** certificate and key for the domain used in `global.hosts.domain`. |
@@ -300,11 +317,11 @@ global:
 ### PostgreSQL load balancing
 
 This feature requires the use of an
-[external PostgreSQL](../advanced/external-db/), as this chart does not
+[external PostgreSQL](../advanced/external-db/index.md), as this chart does not
 deploy PostgreSQL in an HA fashion.
 
-The Rails components in GitLab have the ability to [make use of PostgreSQL
-clusters to load balance read-only queries](https://docs.gitlab.com/ee/administration/postgresql/database_load_balancing.html).
+The Rails components in GitLab have the ability to
+[make use of PostgreSQL clusters to load balance read-only queries](https://docs.gitlab.com/ee/administration/postgresql/database_load_balancing.html).
 
 This feature can be configured in two fashions:
 
@@ -423,8 +440,8 @@ support using sentinels. If sentinel support is desired, a Redis cluster
 needs to be created separately from the GitLab chart install. This can be
 done inside or outside the Kubernetes cluster.
 
-An issue to track the [supporting of sentinels in a GitLab deployed
-Redis cluster](https://gitlab.com/gitlab-org/charts/gitlab/-/issues/1810) has
+An issue to track the
+[supporting of sentinels in a GitLab deployed Redis cluster](https://gitlab.com/gitlab-org/charts/gitlab/-/issues/1810) has
 been created for tracking purposes.
 
 ```yaml
@@ -669,7 +686,7 @@ RPC access to Git repositories, which handles all Git calls made by GitLab.
 
 Administrators can chose to use Gitaly nodes in the following ways:
 
-- [Internal to the chart](#internal), as part of a `StatefulSet` via the [Gitaly chart](gitlab/gitaly/).
+- [Internal to the chart](#internal), as part of a `StatefulSet` via the [Gitaly chart](gitlab/gitaly/index.md).
 - [External to the chart](#external), as external pets.
 - [Mixed environment](#mixed) using both internal and external nodes.
 
@@ -1114,12 +1131,12 @@ You can use these defaults or configure the bucket names:
 
 > Introduced in GitLab 13.4.
 
-The `storage_options` are used to configure [S3 Server Side
-Encryption](https://docs.gitlab.com/ee/administration/object_storage.html#server-side-encryption-headers).
+The `storage_options` are used to configure
+[S3 Server Side Encryption](https://docs.gitlab.com/ee/administration/object_storage.html#server-side-encryption-headers).
 
 Setting a default encryption on an S3 bucket is the easiest way to
-enable encryption, but you may want to [set a bucket policy to ensure
-only encrypted objects are uploaded](https://aws.amazon.com/premiumsupport/knowledge-center/s3-bucket-store-kms-encrypted-objects/).
+enable encryption, but you may want to
+[set a bucket policy to ensure only encrypted objects are uploaded](https://aws.amazon.com/premiumsupport/knowledge-center/s3-bucket-store-kms-encrypted-objects/).
 To do this, you must configure GitLab to send the proper encryption headers
 in the `storage_options` configuration section:
 
@@ -1196,8 +1213,12 @@ kubectl create secret generic gitlab-rails-storage \
 
 `externalDiffs` setting has an additional key `when` to
 [conditionally store specific diffs on object storage](https://docs.gitlab.com/ee/administration/merge_request_diffs.html#alternative-in-database-storage).
-This setting is left empty by default in the Charts, for a default value to be
+This setting is left empty by default in the charts, for a default value to be
 assigned by the Rails code.
+
+#### cdn (only for CI Artifacts)
+
+`artifacts` setting has an additional key `cdn` [to configure Google CDN in front of a Google Cloud Storage bucket](../advanced/external-object-storage/index.md#google-cloud-cdn).
 
 ### Incoming email settings
 
@@ -1328,20 +1349,32 @@ To disable the use of LDAP for web sign-in, set `global.appConfig.ldap.preventSi
 
 If the LDAP server uses a custom CA or self-signed certificate, you must:
 
-1. Ensure that the custom CA/Self-Signed certificate is created as a secret in the cluster/namespace:
+1. Ensure that the custom CA/Self-Signed certificate is created as a Secret or ConfigMap in the cluster/namespace:
 
    ```shell
-   kubectl -n gitlab create secret generic my-custom-ca --from-file=my-custom-ca.pem
+   # Secret
+   kubectl -n gitlab create secret generic my-custom-ca-secret --from-file=unique_name=my-custom-ca.pem
+
+   # ConfigMap
+   kubectl -n gitlab create configmap my-custom-ca-configmap --from-file=unique_name=my-custom-ca.pem
    ```
 
 1. Then, specify:
 
    ```shell
-   --set global.certificates.customCAs[0].secret=my-custom-ca
-   --set global.appConfig.ldap.servers.main.ca_file=/etc/ssl/certs/ca-cert-my-custom-ca.pem
+   # Configure a custom CA from a Secret
+   --set global.certificates.customCAs[0].secret=my-custom-ca-secret
+
+   # Or from a ConfigMap
+   --set global.certificates.customCAs[0].configMap=my-custom-ca-configmap
+
+   # Configure the LDAP integration to trust the custom CA
+   --set global.appConfig.ldap.servers.main.ca_file=/etc/ssl/certs/ca-cert-unique_name.pem
    ```
 
-This will ensure that the CA is mounted in the relevant pods under `/etc/ssl/certs/ca-cert-my-custom-ca.pem` and specifies its use in the LDAP configuration.
+This will ensure that the CA certificate is mounted in the relevant pods at `/etc/ssl/certs/ca-cert-unique_name.pem` and specifies its use in the LDAP configuration.
+
+See [Custom Certificate Authorities](#custom-certificate-authorities) for more info.
 
 ### OmniAuth
 
@@ -1487,7 +1520,7 @@ kubectl create secret generic gitlab-rails-storage \
 
 Sidekiq includes maintenance jobs that can be configured to run on a periodic
 basis using cron style schedules. A few examples are included below. See the
-sample [`gitlab.yml`](https://gitlab.com/gitlab-org/gitlab/blob/master/config/gitlab.yml.example#L346-427)
+`cron_jobs` and `ee_cron_jobs` sections in the sample [`gitlab.yml`](https://gitlab.com/gitlab-org/gitlab/blob/master/config/gitlab.yml.example)
 for more job examples.
 
 These settings are shared between Sidekiq, Webservice (for showing tooltips in UI)
@@ -1624,12 +1657,12 @@ global:
     port: 8181
 ```
 
-| Name | Type | | Default | Description |
-| :-- | :-- | :-- | :-- |
-| serviceName | String | `webservice-default` | Name of service to direct internal API traffic to. Do not include the Release name, as it will be templated in. Should match an entry in `gitlab.webservice.deployments`. See [`gitlab/webservice` chart](gitlab/webservice/index.md#deployments-settings) |
-| scheme | String | `http` | Scheme of the API endpoint |
-| host | String | | Fully qualified hostname or IP address of an API endpoint. Overrides the presence of `serviceName`. |
-| port | Integer | `8181` | Port number of associated API server. |
+| Name        | Type    | Default | Description |
+| :---------- | :------ | :------ | :---------- |
+| serviceName | String  | `webservice-default` | Name of service to direct internal API traffic to. Do not include the Release name, as it will be templated in. Should match an entry in `gitlab.webservice.deployments`. See [`gitlab/webservice` chart](gitlab/webservice/index.md#deployments-settings) |
+| scheme      | String  | `http` | Scheme of the API endpoint |
+| host        | String  | | Fully qualified hostname or IP address of an API endpoint. Overrides the presence of `serviceName`. |
+| port        | Integer | `8181` | Port number of associated API server. |
 | tls.enabled | Boolean | `false` | When set to `true`, enables TLS support for Workhorse. |
 
 ### Bootsnap Cache
@@ -1781,33 +1814,39 @@ These settings do not affect charts from outside of this repository, via `requir
 
 Some users may need to add custom certificate authorities, such as when using internally
 issued SSL certificates for TLS services. To provide this functionality, we provide
-a mechanism for injecting these custom root certificate authorities into the application via secrets.
+a mechanism for injecting these custom root certificate authorities into the application through Secrets or ConfigMaps.
+
+To create a Secret or ConfigMap:
+
+```shell
+# Create a Secret from a certificate file
+kubectl create secret generic secret-custom-ca --from-file=unique_name=/path/to/cert
+
+# Create a ConfigMap from a certificate file
+kubectl create configmap cm-custom-ca --from-file=unique_name=/path/to/cert
+```
+
+To configure a Secret or ConfigMap, or both, specify them in globals:
 
 ```yaml
 global:
   certificates:
     customCAs:
-      - secret: internal-cas
-      - secret: other-custom-cas
+      - secret: secret-custom-CAs           # Mount all keys of a Secret
+      - secret: secret-custom-CAs           # Mount only the specified keys of a Secret
+        keys:
+          - unique_name
+      - configMap: cm-custom-CAs            # Mount all keys of a ConfigMap
+      - configMap: cm-custom-CAs            # Mount only the specified keys of a ConfigMap
+        keys:
+          - unique_name_1
+          - unique_name_2
 ```
 
-A user can provide any number of secrets, each containing any number of keys that hold
-PEM encoded CA certificates. These are configured as entries under `global.certificates.customCAs`.
-All keys within the secret will be mounted, so all keys across all secrets must be unique.
-These secrets can be named in any fashion, but they *must not* contain key names that collide.
-
-To create a secret:
-
-```shell
-kubectl create secret generic custom-ca --from-file=unique_name=/path/to/cert
-```
-
-To configure the secret:
-
-```shell
-helm install gitlab gitlab/gitlab \
-  --set global.certificates.customCAs[0].secret=custom-ca
-```
+You can provide any number of Secrets or ConfigMaps, each containing any number of keys that hold
+PEM-encoded CA certificates. These are configured as entries under `global.certificates.customCAs`.
+All keys are mounted unless `keys:` is provided with a list of specific keys to be mounted. All mounted keys across all Secrets and ConfigMaps must be unique.
+The Secrets and ConfigMaps can be named in any fashion, but they *must not* contain key names that collide.
 
 ## Application Resource
 
@@ -2075,6 +2114,72 @@ global:
 | `authScope`    | String | `api`   | Scope used for authentication with GitLab API.                                                         |
 
 Check the [secrets documentation](../installation/secrets.md#oauth-integration) for more details on the secret.
+
+## Kerberos
+
+To configure the Kerberos integration in the GitLab Helm chart, you must provide a secret in the `global.appConfig.kerberos.keytab.secret` setting containing a Kerberos [keytab](https://web.mit.edu/kerberos/krb5-devel/doc/basic/keytab_def.html) with a service principal for your GitLab host. Your Kerberos administrators can help with creating a keytab file if you don't have one.
+
+You can create a secret using the following snippet (assuming that you are installing the chart in the `gitlab` namespace and `gitlab.keytab` is the keytab file containing the service principal):
+
+```shell
+kubectl create secret generic gitlab-kerberos-keytab --namespace=gitlab --from-file=keytab=./gitlab.keytab
+```
+
+Kerberos integration for Git is enabled by setting `global.appConfig.kerberos.enabled=true`. This will also add the `kerberos` provider to the list of enabled [OmniAuth](https://docs.gitlab.com/ee/integration/omniauth.html) providers for ticket-based authentication in the browser.
+
+If left as `false` the Helm chart will still mount the `keytab` in the toolbox, Sidekiq, and webservice Pods, which can be used with manually configured [OmniAuth settings](#omniauth) for Kerberos.
+
+You can provide a Kerberos client configuration in `global.appConfig.kerberos.krb5Config`.
+
+```yaml
+global:
+  appConfig:
+    kerberos:
+      enabled: true
+      keytab:
+        secret: gitlab-kerberos-keytab
+        key: keytab
+      servicePrincipalName: ""
+      krb5Config: |
+        [libdefaults]
+            default_realm = EXAMPLE.COM
+      dedicatedPort:
+        enabled: false
+        port: 8443
+        https: true
+      simpleLdapLinkingAllowedRealms:
+        - example.com
+```
+
+Check the [Kerberos documentation](https://docs.gitlab.com/ee/integration/kerberos.html) for more details.
+
+### Dedicated port for Kerberos
+
+GitLab supports the use of a [dedicated port for Kerberos negotiation](https://docs.gitlab.com/ee/integration/kerberos.html#http-git-access-with-kerberos-token-passwordless-authentication) when using the HTTP protocol for Git operations to workaround a limitation in Git falling back to Basic Authentication when presented with the `negotiate` headers in the authentication exchange.
+
+Use of the dedicated port is currently required when using GitLab CI/CD - as the GitLab Runner helper relies on in-URL credentials to clone from GitLab.
+
+This can be enabled with the `global.appConfig.kerberos.dedicatedPort` settings:
+
+```yaml
+global:
+  appConfig:
+    kerberos:
+      [...]
+      dedicatedPort:
+        enabled: true
+        port: 8443
+        https: true
+```
+
+This enables an additional clone URL in the GitLab UI that is dedicated for Kerberos negotiation. The `https: true` setting is for URL generation only, and doesn't expose any additional TLS configuration. TLS is terminated and configured in the Ingress for GitLab.
+
+NOTE:
+Due to a current limitation with [our fork of the `nginx-ingress` Helm chart](nginx/fork.md) - specifying a `dedicatedPort` will not currently expose the port for use in the chart's `nginx-ingress` controller. Cluster operators will need to expose this port themselves. Follow [this charts issue](https://gitlab.com/gitlab-org/charts/gitlab/-/issues/3531) for more details and potential workarounds.
+
+### LDAP custom allowed realms
+
+The `global.appConfig.kerberos.simpleLdapLinkingAllowedRealms` can be used to specify a set of domains used to link LDAP and Kerberos identities together when a user's LDAP DN does not match the user's Kerberos realm. See the [Custom allowed realms section in the Kerberos integration documentation](https://docs.gitlab.com/ee/integration/kerberos.html#custom-allowed-realms) for additional details.
 
 ## Outgoing email
 

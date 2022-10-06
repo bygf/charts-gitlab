@@ -1,16 +1,16 @@
 ---
-stage: Enablement
+stage: Systems
 group: Distribution
-info: To determine the technical writer assigned to the Stage/Group associated with this page, see https://about.gitlab.com/handbook/engineering/ux/technical-writing/#designated-technical-writers
+info: To determine the technical writer assigned to the Stage/Group associated with this page, see https://about.gitlab.com/handbook/product/ux/technical-writing/#assignments
 ---
 
 # Upgrade old versions **(FREE SELF)**
 
-If you are looking to upgrade a recent version of the Chart, see the [regular Upgrade Guide](upgrade.md).
+If you are looking to upgrade a recent version of the GitLab chart, see the [Upgrade Guide](upgrade.md).
 
 Upgrade instructions for older versions are available on this page.
 
-## Upgrade steps for 3.0 release
+## Upgrade to version 3.0
 
 The `3.0.0` release requires manual steps in order to perform the upgrade.
 
@@ -48,10 +48,11 @@ curl -s "https://gitlab.com/gitlab-org/charts/gitlab/-/raw/${GITLAB_RELEASE}/scr
 
 ### Prepare the cluster database secrets
 
-> **NOTICE:** If you are not using the bundled PostgreSQL chart (`postgresql.install` is false):
->
-> - If you have supplied `global.psql.password.key`, you do not need to perform this step.
-> - If you have supplied `global.psql.password.secret`, additionally set `global.psql.password.key` to the name of your existing key to bypass this step.
+If you are not using the bundled PostgreSQL chart (`postgresql.install` is false):
+
+- If you have supplied `global.psql.password.key`, you do not need to perform this step.
+- If you have supplied `global.psql.password.secret`, additionally set `global.psql.password.key` to the name of your
+  existing key to bypass this step.
 
 The secret key for the application database key is changing from `postgres-password`, to `postgresql-password`. Use one of the two steps described below to update your database password secret:
 

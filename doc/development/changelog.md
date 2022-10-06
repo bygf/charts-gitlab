@@ -1,7 +1,7 @@
 ---
-stage: Enablement
+stage: Systems
 group: Distribution
-info: To determine the technical writer assigned to the Stage/Group associated with this page, see https://about.gitlab.com/handbook/engineering/ux/technical-writing/#designated-technical-writers
+info: To determine the technical writer assigned to the Stage/Group associated with this page, see https://about.gitlab.com/handbook/product/ux/technical-writing/#assignments
 ---
 
 # Changelog entries
@@ -156,8 +156,8 @@ editor. Once closed, Git presents you with a new text editor instance to edit
 the commit message of commit B. Add the trailer, then save and quit the editor.
 If all went well, commit B is now updated.
 
-For more information about interactive rebases, take a look at [the Git
-documentation](https://git-scm.com/book/en/v2/Git-Tools-Rewriting-History).
+For more information about interactive rebases, take a look at
+[the Git documentation](https://git-scm.com/book/en/v2/Git-Tools-Rewriting-History).
 
 ### History and Reasoning
 

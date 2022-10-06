@@ -3,7 +3,7 @@
 {{- define "gitlab.certificates.initContainer" -}}
 {{- $customCAsEnabled := .Values.global.certificates.customCAs }}
 {{- $internalGitalyTLSEnabled := $.Values.global.gitaly.tls.enabled }}
-{{- $internalPraefectTLSEnabled := and $.Values.global.praefect.tls.enabled $.Values.global.praefect.tls.secretName }}
+{{- $internalPraefectTLSEnabled := $.Values.global.praefect.tls.enabled }}
 {{- $certmanagerDisabled := not (or $.Values.global.ingress.configureCertmanager $.Values.global.ingress.tls) }}
 {{- $imageCfg := dict "global" .Values.global.image "local" .Values.global.certificates.image -}}
 - name: certificates
@@ -31,7 +31,7 @@
 {{- define "gitlab.certificates.volumes" -}}
 {{- $customCAsEnabled := .Values.global.certificates.customCAs }}
 {{- $internalGitalyTLSEnabled := $.Values.global.gitaly.tls.enabled }}
-{{- $internalPraefectTLSEnabled := and $.Values.global.praefect.tls.enabled $.Values.global.praefect.tls.secretName }}
+{{- $internalPraefectTLSEnabled := $.Values.global.praefect.tls.enabled }}
 {{- $certmanagerDisabled := not (or $.Values.global.ingress.configureCertmanager $.Values.global.ingress.tls) }}
 - name: etc-ssl-certs
   emptyDir:
@@ -45,9 +45,27 @@
     defaultMode: 0440
     sources:
     {{- range $index, $customCA := .Values.global.certificates.customCAs }}
+    {{- if $customCA.secret }}
     - secret:
         name: {{ $customCA.secret }}
-        # items not specified, will mount all keys
+        {{- if $customCA.keys }}
+        items:
+          {{- range $customCA.keys }}
+          - key: {{ . }}
+            path: {{ . }}
+          {{- end }}
+        {{- end }}
+    {{- else if $customCA.configMap }}
+    - configMap:
+        name: {{ $customCA.configMap }}
+        {{- if $customCA.keys }}
+        items:
+          {{- range $customCA.keys }}
+          - key: {{ . }}
+            path: {{ . }}
+          {{- end }}
+        {{- end }}
+    {{- end }}
     {{- end }}
     {{- if not (or $.Values.global.ingress.configureCertmanager $.Values.global.ingress.tls) }}
     - secret:

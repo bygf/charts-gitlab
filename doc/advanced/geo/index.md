@@ -1,10 +1,10 @@
 ---
-stage: Enablement
+stage: Systems
 group: Distribution
-info: To determine the technical writer assigned to the Stage/Group associated with this page, see https://about.gitlab.com/handbook/engineering/ux/technical-writing/#designated-technical-writers
+info: To determine the technical writer assigned to the Stage/Group associated with this page, see https://about.gitlab.com/handbook/product/ux/technical-writing/#assignments
 ---
 
-# GitLab Geo
+# Configure the GitLab chart with GitLab Geo
 
 GitLab Geo provides the ability to have geographically distributed application
 deployments.
@@ -258,7 +258,7 @@ To deploy this chart as a Geo Primary, start [from this example configuration](h
    - global.geo.nodeName must match
      [the Name field of a Geo site in the Admin Area](https://docs.gitlab.com/ee/user/admin_area/geo_nodes.html#common-settings)
    - Also configure any additional settings, such as:
-     - [Configuring SSL/TLS](../../installation/deployment.md#tls-certificates)
+     - [Configuring SSL/TLS](../../installation/tools.md#tls-certificates)
      - [Using external Redis](../external-redis/index.md)
      - [using external Object Storage](../external-object-storage/index.md)
    <!-- markdownlint-enable MD044 -->
@@ -578,7 +578,7 @@ To deploy this chart as a Geo Secondary site, start [from this example configura
    - global.geo.nodeName must match
      [the Name field of a Geo site in the Admin Area](https://docs.gitlab.com/ee/user/admin_area/geo_nodes.html#common-settings)
    - Also configure any additional settings, such as:
-     - [Configuring SSL/TLS](../../installation/deployment.md#tls-certificates)
+     - [Configuring SSL/TLS](../../installation/tools.md#tls-certificates)
      - [Using external Redis](../external-redis/index.md)
      - [using external Object Storage](../external-object-storage/index.md)
    - For external databases, `global.psql.host` is the secondary, read-only replica database, while `global.geo.psql.host` is the Geo tracking database
@@ -598,7 +598,7 @@ Now that both databases are configured and applications are deployed, we must te
 the Primary site that the Secondary site exists:
 
 1. Visit the **primary** site, and on the top bar, select
-   **Menu >** **{admin}** **Admin**.
+   **Main menu > Admin**.
 1. On the left sidebar, select **Geo**.
 1. Select **Add site**.
 1. Add the **secondary** site. Use the full GitLab URL for the URL.
