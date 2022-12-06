@@ -1042,15 +1042,43 @@ redis:
 ## Installation & configuration of stable/prostgresql
 ## See requirements.yaml for current version
 postgresql:
-  postgresqlUsername: gitlab
-  # This just needs to be set. It will use a second entry in existingSecret for postgresql-postgres-password
-  postgresqlPostgresPassword: bogus
   install: true
-  postgresqlDatabase: gitlabhq_production
   image:
     tag: 12.7.0
-  usePasswordFile: true
-  existingSecret: bogus
+  auth:
+    username: gitlab
+    existingSecret: gitlab-postgresql-password
+    database: gitlabhq_production
+    usePasswordFiles: true
+    secretKeys:
+      adminPasswordKey: postgres-password
+      userPasswordKey: password
+  initdbScriptsConfigMap: bogus
+  master:
+    extraVolumeMounts:
+      - name: custom-init-scripts
+        mountPath: /docker-entrypoint-preinitdb.d/init_revision.sh
+        subPath: init_revision.sh
+    podAnnotations:
+      postgresql.gitlab/init-revision: "1"
+  metrics:
+    enabled: true
+    ## Optionally define additional custom metrics
+    ## ref: https://github.com/wrouesnel/postgres_exporter#adding-new-metrics-via-a-config-file
+
+postgresql-ci:
+  nameOverride: postgresql-ci
+  install: true
+  image:
+    tag: 12.7.0
+  auth:
+    username: gitlab
+    existingSecret: gitlab-postgresql-password
+    database: gitlabhq_production_ci
+    usePasswordFiles: true
+    secretKeys:
+      adminPasswordKey: postgres-password
+      userPasswordKey: password
   initdbScriptsConfigMap: bogus
   master:
     extraVolumeMounts:

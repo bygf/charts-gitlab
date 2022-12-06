@@ -15,6 +15,11 @@ global:
     # Configure the clone link in the UI to include the high-numbered NodePort
     # value from below (`gitlab.gitlab-shell.service.nodePort`)
     port: 32022
+  #psql:
+    #ci:
+      #database: gitlabhq_production_ci
+      #serviceName: gitlab-postgresql-ci
+
 # Don't use certmanager, we'll self-sign
 certmanager:
   install: false

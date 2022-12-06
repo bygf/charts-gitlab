@@ -16,6 +16,6 @@ data:
     fi
   enable_extensions.sh: |
     [[ -n "${POSTGRES_POSTGRES_PASSWORD_FILE:-}" ]] && POSTGRES_POSTGRES_PASSWORD=$(cat ${POSTGRES_POSTGRES_PASSWORD_FILE})
-    PGPASSWORD=${POSTGRES_POSTGRES_PASSWORD} psql -d {{ template "gitlab.psql.database" .}} -U postgres -c 'CREATE EXTENSION IF NOT EXISTS pg_trgm; CREATE EXTENSION IF NOT EXISTS btree_gist;'
+    PGPASSWORD=${POSTGRES_POSTGRES_PASSWORD} psql -d {{ template "gitlab.psql.database" .}} -U postgres -c 'ALTER USER {{ template "gitlab.psql.username" .}} SUPERUSER; CREATE EXTENSION IF NOT EXISTS pg_trgm; CREATE EXTENSION IF NOT EXISTS btree_gist;'
 # Leave this here - This line denotes end of block to the parser.
 {{- end -}}
