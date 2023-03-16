@@ -187,6 +187,7 @@ SOME_OTHER_KEY=some_other_value
 ### extraEnvFrom
 
 `extraEnvFrom` allows you to expose additional environment variables from other data sources in all containers in the pods.
+You can override them for each [deployment](#deployments-settings).
 
 Below is an example use of `extraEnvFrom`:
 
@@ -204,11 +205,14 @@ extraEnvFrom:
       name: special-secret
       key: special_token
       # optional: boolean
-  CONFIG_STRING:
-    configMapKeyRef:
-      name: useful-config
-      key: some-string
-      # optional: boolean
+deployments:
+  default:
+    extraEnvFrom:
+      CONFIG_STRING:
+        configMapKeyRef:
+          name: useful-config
+          key: some-string
+          # optional: boolean
 ```
 
 ### image.pullSecrets
