@@ -198,7 +198,7 @@ and they will assist you with any issues you are having.
   helm get values <release name> > gitlab.yaml
 
   # run upgrade itself
-  helm upgrade <release name> <chart path> -f gitlab.yaml
+  helm upgrade --atomic <release name> <chart path> -f gitlab.yaml
   ```
 
   See also [Updating GitLab by using the Helm chart](../installation/upgrade.md).
@@ -209,7 +209,7 @@ and they will assist you with any issues you are having.
   - Run the following command to apply changes:
 
     ```shell
-    helm upgrade <release name> <chart path> -f gitlab.yaml
+    helm upgrade --atomic <release name> <chart path> -f gitlab.yaml
     ```
 
 - How to get the manifest for a release. It can be useful because it contains the information about
