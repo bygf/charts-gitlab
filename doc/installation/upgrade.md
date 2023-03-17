@@ -18,13 +18,13 @@ Ongoing work to support this feature can be tracked via
 [the GitLab Operator epic](https://gitlab.com/groups/gitlab-org/cloud-native/-/epics/52).
 
 We also recommend that you take a [backup](../backup-restore/index.md) first. Also note that you
-must provide all values using `helm upgrade --set key=value` syntax or `-f values.yaml` instead of
+must provide all values using `helm upgrade --atomic --set key=value` syntax or `-f values.yaml` instead of
 using `--reuse-values`, because some of the current values might be deprecated.
 
 You can retrieve your previous `--set` arguments cleanly, with
 `helm get values <release name>`. If you direct this into a file
 (`helm get values <release name> > gitlab.yaml`), you can safely pass this
-file via `-f`. Thus `helm upgrade gitlab gitlab/gitlab -f gitlab.yaml`.
+file via `-f`. Thus `helm upgrade --atomic gitlab gitlab/gitlab -f gitlab.yaml`.
 This safely replaces the behavior of `--reuse-values`
 
 See [mappings](../installation/version_mappings.md) between chart versioning and GitLab versioning.
@@ -57,7 +57,7 @@ The following are the steps to upgrade GitLab to a newer version:
 1. Perform the upgrade, with values extracted in the previous step:
 
    ```shell
-   helm upgrade gitlab gitlab/gitlab \
+   helm upgrade --atomic gitlab gitlab/gitlab \
      --version <new version> \
      -f gitlab.yaml \
      --set gitlab.migrations.enabled=true \
