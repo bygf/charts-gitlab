@@ -31,10 +31,10 @@ spec:
         cluster-autoscaler.kubernetes.io/safe-to-evict: "true"
       {{- if and .Values.metrics.enabled (not .Values.metrics.serviceMonitor.enabled) }}
         gitlab.com/prometheus_scrape: "true"
-        gitlab.com/prometheus_port: {{ default .Values.observability.port .Values.metrics.port | quote }}
+        gitlab.com/prometheus_port: {{ .Values.observability.port | quote }}
         gitlab.com/prometheus_path: {{ .Values.metrics.path }}
         prometheus.io/scrape: "true"
-        prometheus.io/port: {{ default .Values.observability.port .Values.metrics.port | quote }}
+        prometheus.io/port: {{ .Values.observability.port | quote }}
         prometheus.io/path: {{ .Values.metrics.path }}
       {{- end }}
       {{- range $key, $value := .Values.annotations }}
@@ -99,7 +99,7 @@ spec:
               name: {{ template "name" . }}-k8s-api
             - containerPort: {{ .Values.service.privateApiPort }}
               name: {{ template "name" . }}-private-api
-            - containerPort: {{ default .Values.observability.port .Values.metrics.port }}
+            - containerPort: {{ .Values.observability.port }}
               name: http-metrics
           readinessProbe:
             httpGet:

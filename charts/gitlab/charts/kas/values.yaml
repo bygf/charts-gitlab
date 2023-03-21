@@ -75,7 +75,6 @@ service:
   # loadBalancerSourceRanges:
 metrics:
   enabled: true
-  # port: 8151  # DEPRECATED: in favor of `observability.port` below
   path: /metrics
   serviceMonitor:
     enabled: false
