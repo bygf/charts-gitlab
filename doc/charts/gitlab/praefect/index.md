@@ -93,6 +93,25 @@ global:
         storageClass: storageclass2
 ```
 
+## defaultReplicationFactor
+
+`defaultReplicationFactor` can be configured on each virtual storages. (see [configure replication-factor](https://docs.gitlab.com/ee/administration/gitaly/praefect.html#configure-replication-factor) documentation).
+
+```yaml
+global:
+  praefect:
+    enabled: true
+    virtualStorages:
+    - name: default
+      gitalyReplicas: 5
+      maxUnavailable: 2
+      defaultReplicationFactor: 3
+    - name: secondary
+      gitalyReplicas: 4
+      maxUnavailable: 1
+      defaultReplicationFactor: 2
+```
+
 ### Migrating to Praefect
 
 NOTE:
@@ -256,9 +275,10 @@ the `helm install` command using the `--set` flags.
 | failover.enabled                          | true                                              | Whether Praefect should perform failover on node failure                                                                                                                   |
 | failover.readonlyAfter                    | false                                             | Whether the nodes should be in read-only mode after failover                                                                                                               |
 | autoMigrate                               | true                                              | Automatically run migrations on startup                                                                                                                                    |
-| electionStrategy                          | `sql`                                             | See [election strategy](https://docs.gitlab.com/ee/administration/gitaly/praefect.html#automatic-failover-and-leader-election)                                             |
 | image.repository                          | `registry.gitlab.com/gitlab-org/build/cng/gitaly` | The default image repository to use. Praefect is bundled as part of the Gitaly image                                                                                       |
 | podLabels                                 | `{}`                                              | Supplemental Pod labels. Will not be used for selectors.                                                                                                                   |
+| ntpHost                                   | `pool.ntp.org`                                    | Configure the NTP server Praefect should ask the for the current time.
+
 | service.name                              | `praefect`                                        | The name of the service to create                                                                                                                                          |
 | service.type                              | ClusterIP                                         | The type of service to create                                                                                                                                              |
 | service.internalPort                      | 8075                                              | The internal port number that the Praefect pod will be listening on                                                                                                        |
@@ -280,5 +300,6 @@ the `helm install` command using the `--set` flags.
 | `metrics.serviceMonitor.endpointConfig`   | `{}`                                              | Additional endpoint configuration for the ServiceMonitor                                                                                                                   |
 | securityContext.runAsUser                 | 1000                                              |                                                                                                                                                                            |
 | securityContext.fsGroup                   | 1000                                              |                                                                                                                                                                            |
+| securityContext.fsGroupChangePolicy       |                                                   | Policy for changing ownership and permission of the volume (requires Kubernetes 1.23)                                                                                      |
 | serviceLabels                             | `{}`                                              | Supplemental service labels                                                                                                                                                |
 | statefulset.strategy                      | `{}`                                              | Allows one to configure the update strategy utilized by the statefulset                                                                                                    |

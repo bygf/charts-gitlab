@@ -24,13 +24,6 @@
 # `.buildpacks` that contains the URLs, one on each line, in order.
 # Note: Auto CI does not work with multiple buildpacks yet
 
-workflow:
-  rules:
-    # Prevent "detached" MR pipelines, not in use in this project.
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-      when: never
-    - when: always
-
 default:
   image: registry.gitlab.com/gitlab-org/gitlab-build-images:gitlab-charts-build-base-helm-3.7
 
@@ -49,6 +42,11 @@ variables:
   REVIEW_REF_PREFIX: ""
   ISSUE_BOT_LABELS_EXTRA: "group::distribution,type::maintenance,maintenance::pipelines"
   SAST_EXCLUDED_PATHS: "/doc,/examples,/spec"
+  CANONICAL_PROJECT_PATH: 'gitlab-org/charts/gitlab'
+  SECURITY_PROJECT_PATH: 'gitlab-org/security/charts/gitlab'
+  DEV_PROJECT_PATH: 'gitlab/charts/gitlab'
+  QA_FULL_SUITE_OPTIONS: '--tag ~smoke --tag ~reliable --tag ~skip_live_env --tag ~orchestrated --tag ~transient'
+  QA_SANITY_SUITE_OPTIONS: '--tag smoke --tag reliable --tag ~skip_live_env --tag ~orchestrated'
 
 stages:
   - prepare
@@ -59,6 +57,7 @@ stages:
   - canary
   - stable
   - specs
+  - qa-manual
   - qa
   - staging-release
   - package
@@ -67,10 +66,11 @@ stages:
   - report
 
 include:
-  - template: Security/Dependency-Scanning.gitlab-ci.yml
-  - template: Security/Secret-Detection.gitlab-ci.yml
-  - template: Security/SAST.gitlab-ci.yml
-  - template: Security/SAST-IaC.latest.gitlab-ci.yml
+  - local: '/.gitlab/ci/rules.gitlab-ci.yml'
+  - template: Jobs/Dependency-Scanning.latest.gitlab-ci.yml
+  - template: Jobs/Secret-Detection.latest.gitlab-ci.yml
+  - template: Jobs/SAST.latest.gitlab-ci.yml
+  - template: Jobs/SAST-IaC.latest.gitlab-ci.yml
 dependency_scanning:
   needs: []
   before_script: []
@@ -87,32 +87,16 @@ iac-sast:
   needs: []
   before_script: []
 
-.auto_deploy_items:
-  - &com_auto_deploy_branch_ref /^[0-9]+-[0-9]+-auto-deploy-[0-9]+$/@gitlab-org/charts/gitlab
-
-.stable_branch_items:
-  - &stable_branch_ref /^[0-9]+-[0-9]+-stable$/
-
 tag_auto_deploy:
   stage: staging-release
-  rules:
-    - if: $CI_PIPELINE_TRIGGERED && $TRIGGER_JOB == "tag_auto_deploy" && $AUTO_DEPLOY_TAG && $REPOSITORY_PAT
   script:
     - ./scripts/tag_auto_deploy.rb
+  rules:
+    - if: '$PIPELINE_TYPE == "AUTO_DEPLOY_TRIGGER_PIPELINE"'
 
 .source_autodevops:
  before_script:
    - source scripts/ci/autodevops.sh
-
-.deps_pipeline: &deps_pipeline
-  variables:
-    - $DEPS_PIPELINE
-
-.except_deps_update: &except_deps_update
-  except:
-    variables:
-      - $DEPS_PIPELINE
-      - $TRIGGER_JOB
 
 update-trigger-branch:
   stage: prepare
@@ -129,8 +113,8 @@ update-trigger-branch:
     - git reset --hard $CI_DEFAULT_BRANCH
     - git push --force-with-lease=${TRIGGER_BRANCH} origin ${TRIGGER_BRANCH} -o ci.skip
   rules:
-    - if: '$CI_PROJECT_PATH == "gitlab-org/charts/gitlab" && $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH'
-    - if: '$TRIGGER_UPDATE' # Allow us to manually trigger this job in a pipeline if we wish using this CI variable
+    - if: '$PIPELINE_TYPE == "CANONICAL_DEFAULT_BRANCH_PIPELINE"'
+    - if: '$TRIGGER_UPDATE'  # Allow us to manually trigger this job in a pipeline if we wish using this CI variable
 
 dependency_update:
   image: registry.gitlab.com/gitlab-org/gitlab-omnibus-builder/ruby_docker:2.15.0
@@ -138,8 +122,8 @@ dependency_update:
   script:
     - curl https://deps.app/install.sh | bash -s -- -b $HOME/bin
     - $HOME/bin/deps ci
-  only:
-    <<: *deps_pipeline
+  rules:
+    - if: '$PIPELINE_TYPE == "DEPS_IO_VERSION_CHECK_PIPELINE"'
 
 lint_package:
   stage: preflight
@@ -155,13 +139,10 @@ lint_package:
     expire_in: 3d
     paths:
     - build
-  except:
-    <<: *deps_pipeline
-    refs:
-      - tags
-      - triggers
-      - /(^docs[\/-].+|.+-docs$)/
-      - *com_auto_deploy_branch_ref
+  rules:
+    - if: '$PIPELINE_TYPE =~ /_MR_PIPELINE$/'
+    - if: '$PIPELINE_TYPE =~ /_BRANCH_PIPELINE$/'
+    - if: '$PIPELINE_TYPE == "NIGHTLY_PIPELINE"'
 
 .kubeval:
   stage: preflight
@@ -171,13 +152,10 @@ lint_package:
     - helm repo add jetstack https://charts.jetstack.io
     - helm dependency update
     - helm kubeval . --force-color --strict --kube-version $KUBE_VERSION --set certmanager-issuer.email=support@gitlab.com $HELM_EXTRAS --skip-kinds "CustomResourceDefinition" -v $KUBE_VERSION
-  except:
-    <<: *deps_pipeline
-    refs:
-      - tags
-      - triggers
-      - /(^docs[\/-].+|.+-docs$)/
-      - *com_auto_deploy_branch_ref
+  rules:
+    - if: '$PIPELINE_TYPE =~ /_MR_PIPELINE$/'
+    - if: '$PIPELINE_TYPE =~ /_BRANCH_PIPELINE$/'
+    - if: '$PIPELINE_TYPE == "NIGHTLY_PIPELINE"'
 
 "Validate 1.19.16":
   extends: .kubeval
@@ -207,6 +185,7 @@ lint_package:
   extends: .source_autodevops
   script:
     - mkdir -p $(dirname "${VARIABLES_FILE}")
+    - set_context
     - check_kube_domain
     - kubectl version
     - ensure_namespace
@@ -219,26 +198,25 @@ lint_package:
     - echo "export GITLAB_URL=gitlab-$HOST_SUFFIX.$KUBE_INGRESS_BASE_DOMAIN"         >> "${VARIABLES_FILE}"
     - echo "export REGISTRY_URL=registry-$HOST_SUFFIX.$KUBE_INGRESS_BASE_DOMAIN"     >> "${VARIABLES_FILE}"
     - echo "export S3_ENDPOINT=https://minio-$HOST_SUFFIX.$KUBE_INGRESS_BASE_DOMAIN" >> "${VARIABLES_FILE}"
+    - kubectl wait pods -n $NAMESPACE -l app=toolbox,release=$RELEASE_NAME  --for condition=Ready --timeout=60s
+    - echo "export QA_GITLAB_REVISION=`kubectl exec -i $(kubectl get pods -lrelease=$RELEASE_NAME,app=toolbox -o custom-columns=":metadata.name") -c toolbox -- cat /srv/gitlab/REVISION`" >> "${VARIABLES_FILE}"
   artifacts:
     when: always
     paths:
     - variables
-  only:
-    refs:
-      - branches
-    variables:
-      - $KUBECONFIG && ($CI_PROJECT_PATH == "gitlab-org/charts/gitlab" || $CI_PROJECT_PATH == "gitlab/charts/gitlab")
-  except:
-    <<: *deps_pipeline
-    refs:
-      - master
-      - triggers
-      - /(^docs[\/-].+|.+-docs$)/
-      - *com_auto_deploy_branch_ref
+  rules:
+    - !reference [.rule:skip_if_no_cluster]
+    - if: '$PIPELINE_TYPE =~ /MR_PIPELINE$/'
+    - if: '$PIPELINE_TYPE =~ /STABLE_BRANCH_PIPELINE$/'
+    - if: '$PIPELINE_TYPE =~ /FEATURE_BRANCH_PIPELINE$/'
+    - if: '$PIPELINE_TYPE == "QA_KNAPSACK_UPDATE_PIPELINE"'
 
 review_gke:
   variables:
     DNS_PROVIDER: "google"
+    AGENT_NAME: "gke-ci-cluster"
+    KUBE_INGRESS_BASE_DOMAIN: "helm-charts.win"
+    KUBE_NAMESPACE: "helm-charts-win"
   extends: .review_template
   environment:
     name: gke_review/$REVIEW_REF_PREFIX$CI_COMMIT_REF_SLUG
@@ -258,6 +236,20 @@ review_gke122:
     auto_stop_in: 4 days
   resource_group: "gke122-review-app-${REVIEW_REF_PREFIX}${CI_COMMIT_REF_SLUG}"
 
+review_gke125:
+  variables:
+    DNS_PROVIDER: "google"
+    AGENT_NAME: "gke125-ci-cluster"
+    KUBE_INGRESS_BASE_DOMAIN: "cloud-native-v125.helm-charts.win"
+    KUBE_NAMESPACE: "helm-charts-win"
+  extends: .review_template
+  environment:
+    name: gke125_review/$REVIEW_REF_PREFIX$CI_COMMIT_REF_SLUG
+    url: https://gitlab-$CI_ENVIRONMENT_SLUG.$KUBE_INGRESS_BASE_DOMAIN
+    on_stop: stop_review_gke125
+    auto_stop_in: 4 days
+  resource_group: "gke125-review-app-${REVIEW_REF_PREFIX}${CI_COMMIT_REF_SLUG}"
+
 review_gke_dev:
   variables:
     DNS_PROVIDER: "google"
@@ -269,11 +261,9 @@ review_gke_dev:
     on_stop: stop_review_gke_dev
     auto_stop_in: 4 days
   resource_group: "gke-review-app-dev-${REVIEW_REF_PREFIX}${CI_COMMIT_REF_SLUG}"
-  only:
-    refs:
-      - /.*-stable/@gitlab/charts/gitlab
-    variables:
-      - $KUBECONFIG && ($CI_PROJECT_PATH == "gitlab-org/charts/gitlab" || $CI_PROJECT_PATH == "gitlab/charts/gitlab")
+  rules:
+    - !reference [.rule:skip_if_no_cluster]
+    - if: '$PIPELINE_TYPE == "BUILD_STABLE_BRANCH_PIPELINE"'
 
 review_eks:
   variables:
@@ -295,25 +285,24 @@ review_eks:
   script:
     - git checkout master
     - source scripts/ci/autodevops.sh
+    - set_context
     - delete
     - cleanup
   when: manual
   allow_failure: true
-  only:
-    refs:
-      - branches
-    variables:
-      - $KUBECONFIG && ($CI_PROJECT_PATH == "gitlab-org/charts/gitlab" || $CI_PROJECT_PATH == "gitlab/charts/gitlab")
-  except:
-    <<: *deps_pipeline
-    refs:
-      - master
-      - triggers
-      - /(^docs[\/-].+|.+-docs$)/
-      - *com_auto_deploy_branch_ref
+  rules:
+    - !reference [.rule:skip_if_no_cluster]
+    - if: '$PIPELINE_TYPE =~ /MR_PIPELINE$/'
+    - if: '$PIPELINE_TYPE =~ /STABLE_BRANCH_PIPELINE$/'
+    - if: '$PIPELINE_TYPE =~ /FEATURE_BRANCH_PIPELINE$/'
+    - if: '$PIPELINE_TYPE == "QA_KNAPSACK_UPDATE_PIPELINE"'
 
 stop_review_gke:
   extends: .stop_review_template
+  variables:
+    AGENT_NAME: "gke-ci-cluster"
+    KUBE_INGRESS_BASE_DOMAIN: "helm-charts.win"
+    KUBE_NAMESPACE: "helm-charts-win"
   environment:
     name: gke_review/$REVIEW_REF_PREFIX$CI_COMMIT_REF_SLUG
     action: stop
@@ -324,54 +313,30 @@ stop_review_gke122:
     name: k8s122_review/$REVIEW_REF_PREFIX$CI_COMMIT_REF_SLUG
     action: stop
 
+stop_review_gke125:
+  variables:
+    AGENT_NAME: "gke125-ci-cluster"
+    KUBE_INGRESS_BASE_DOMAIN: "cloud-native-v125.helm-charts.win"
+    KUBE_NAMESPACE: "helm-charts-win"
+  extends: .stop_review_template
+  environment:
+    name: gke125_review/$REVIEW_REF_PREFIX$CI_COMMIT_REF_SLUG
+    action: stop
+
 stop_review_gke_dev:
   extends: .stop_review_template
   environment:
     name: dev_gke_review/$REVIEW_REF_PREFIX$CI_COMMIT_REF_SLUG
     action: stop
-  only:
-    refs:
-      - /.*-stable/@gitlab/charts/gitlab
-    variables:
-      - $KUBECONFIG && ($CI_PROJECT_PATH == "gitlab-org/charts/gitlab" || $CI_PROJECT_PATH == "gitlab/charts/gitlab")
+  rules:
+    - !reference [.rule:skip_if_no_cluster]
+    - if: '$PIPELINE_TYPE == "BUILD_STABLE_BRANCH_PIPELINE"'
 
 stop_review_eks:
   extends: .stop_review_template
   environment:
     name: eks_review/$REVIEW_REF_PREFIX$CI_COMMIT_REF_SLUG
     action: stop
-
-# Keys that start with a dot (.) will not be processed by GitLab CI.
-# Staging and canary jobs are disabled by default, to enable them
-# remove the dot (.) before the job name.
-# https://docs.gitlab.com/ee/ci/yaml/README.html#hidden-keys
-
-# Staging deploys are disabled by default since
-# continuous deployment to production is enabled by default
-# If you prefer to automatically deploy to staging and
-# only manually promote to production, enable this job by removing the dot (.),
-# and uncomment the `when: manual` line in the `production` job.
-
-.staging:
-  stage: staging
-  script:
-    - check_kube_domain
-    - check_domain_ip
-    - ensure_namespace
-    - create_secret
-    - deploy
-    - wait_for_deploy
-  environment:
-    name: staging
-    url: https://gitlab-staging.$KUBE_INGRESS_BASE_DOMAIN
-  variables:
-    DOMAIN: -staging.$KUBE_INGRESS_BASE_DOMAIN
-  <<: *except_deps_update
-  only:
-    refs:
-      - master
-    variables:
-      - $KUBECONFIG && ($CI_PROJECT_PATH == "gitlab-org/charts/gitlab" || $CI_PROJECT_PATH == "gitlab/charts/gitlab")
 
 # This job continuously deploys to production on every push to `master`.
 # To make this a manual process, either because you're enabling `staging`
@@ -383,12 +348,13 @@ stop_review_eks:
   extends: .source_autodevops
   script:
     - mkdir -p $(dirname "${VARIABLES_FILE}")
+    - set_context
     - check_kube_domain
-    - check_domain_ip
     - ensure_namespace
     - create_secret
     - deploy
     - wait_for_deploy
+    - check_domain_ip
     - restart_toolbox
     - echo "export QA_ENVIRONMENT_URL=gitlab.$KUBE_INGRESS_BASE_DOMAIN" >> "${VARIABLES_FILE}"
     - echo "export GITLAB_ROOT_DOMAIN=$KUBE_INGRESS_BASE_DOMAIN"        >> "${VARIABLES_FILE}"
@@ -398,13 +364,9 @@ stop_review_eks:
     - variables
   variables:
     DOMAIN: ".$KUBE_INGRESS_BASE_DOMAIN"
-#  when: manual
-  <<: *except_deps_update
-  only:
-    refs:
-      - master
-    variables:
-      - $KUBECONFIG && ($CI_PROJECT_PATH == "gitlab-org/charts/gitlab" || $CI_PROJECT_PATH == "gitlab/charts/gitlab")
+  rules:
+    - !reference [.rule:skip_if_no_cluster]
+    - if: '$PIPELINE_TYPE =~ /DEFAULT_BRANCH_PIPELINE$/'
 
 stable_gke:
   extends: .stable
@@ -413,7 +375,31 @@ stable_gke:
     url: https://gitlab.$KUBE_INGRESS_BASE_DOMAIN
   variables:
     VARIABLES_FILE: "variables/stable_gke"
+    AGENT_NAME: "gke-ci-cluster"
+    KUBE_INGRESS_BASE_DOMAIN: "helm-charts.win"
+    KUBE_NAMESPACE: "helm-charts-win"
   resource_group: "gke-production"
+
+stable_gke122:
+  extends: .stable
+  environment:
+    name: k8s122_production
+    url: https://gitlab.$KUBE_INGRESS_BASE_DOMAIN
+  variables:
+    VARIABLES_FILE: "variables/stable_gke122"
+  resource_group: "gke122-production"
+
+stable_gke125:
+  extends: .stable
+  environment:
+    name: gke125_production
+    url: https://gitlab.$KUBE_INGRESS_BASE_DOMAIN
+  variables:
+    VARIABLES_FILE: "variables/stable_gke125"
+    AGENT_NAME: "gke125-ci-cluster"
+    KUBE_INGRESS_BASE_DOMAIN: "cloud-native-v125.helm-charts.win"
+    KUBE_NAMESPACE: "helm-charts-win"
+  resource_group: "gke125-production"
 
 stable_eks:
   extends: .stable
@@ -426,6 +412,10 @@ stable_eks:
 
 review_helm_test:
   stage: qa
+  variables:
+    AGENT_NAME: "gke-ci-cluster"
+    KUBE_INGRESS_BASE_DOMAIN: "helm-charts.win"
+    KUBE_NAMESPACE: "helm-charts-win"
   environment:
     name: gke_review/$REVIEW_REF_PREFIX$CI_COMMIT_REF_SLUG
     url: https://gitlab-$CI_ENVIRONMENT_SLUG.$KUBE_INGRESS_BASE_DOMAIN
@@ -433,39 +423,34 @@ review_helm_test:
   extends: .source_autodevops
   script:
     - helm test "$RELEASE_NAME"
-  only:
-    refs:
-      - branches
-    variables:
-      - $KUBECONFIG && ($CI_PROJECT_PATH == "gitlab-org/charts/gitlab" || $CI_PROJECT_PATH == "gitlab/charts/gitlab")
-  except:
-    <<: *deps_pipeline
-    refs:
-      - master
-      - triggers
-      - /(^docs[\/-].+|.+-docs$)/
-      - *com_auto_deploy_branch_ref
+  rules:
+    - !reference [.rule:skip_if_no_cluster]
+    - if: '$PIPELINE_TYPE =~ /MR_PIPELINE$/'
+    - if: '$PIPELINE_TYPE =~ /STABLE_BRANCH_PIPELINE$/'
+    - if: '$PIPELINE_TYPE =~ /FEATURE_BRANCH_PIPELINE$/'
 
 production_helm_test:
   stage: qa
+  variables:
+    AGENT_NAME: "gke-ci-cluster"
+    KUBE_INGRESS_BASE_DOMAIN: "helm-charts.win"
+    KUBE_NAMESPACE: "helm-charts-win"
   environment:
     name: gke_production
     url: https://gitlab.$KUBE_INGRESS_BASE_DOMAIN
   extends: .source_autodevops
   script:
     - helm test "$RELEASE_NAME"
-  <<: *except_deps_update
-  only:
-    refs:
-      - master@charts/gitlab
-    variables:
-      - $KUBECONFIG && ($CI_PROJECT_PATH == "gitlab-org/charts/gitlab" || $CI_PROJECT_PATH == "gitlab/charts/gitlab")
-
+  rules:
+    - !reference [.rule:skip_if_no_cluster]
+    - if: '$PIPELINE_TYPE =~ /DEFAULT_BRANCH_PIPELINE$/'
 
 debug_review:
   stage: qa
   when: on_failure
+  extends: .source_autodevops
   script:
+    - set_context
     - kubectl -n "$NAMESPACE" describe pod
     - kubectl -n "$NAMESPACE" get pod,jobs,secret,ing,cm,sa,svc,role,rolebinding,pvc
   artifacts:
@@ -478,38 +463,26 @@ debug_review:
   variables:
     HOST_SUFFIX: "$CI_ENVIRONMENT_SLUG"
     DOMAIN: "-$CI_ENVIRONMENT_SLUG.$KUBE_INGRESS_BASE_DOMAIN"
-  only:
-    refs:
-      - branches
-    variables:
-      - $KUBECONFIG && ($CI_PROJECT_PATH == "gitlab-org/charts/gitlab" || $CI_PROJECT_PATH == "gitlab/charts/gitlab")
-  except:
-    <<: *deps_pipeline
-    refs:
-      - master
-      - triggers
-      - /(^docs[\/-].+|.+-docs$)/
-      - *com_auto_deploy_branch_ref
+    AGENT_NAME: "gke-ci-cluster"
+    KUBE_INGRESS_BASE_DOMAIN: "helm-charts.win"
+    KUBE_NAMESPACE: "helm-charts-win"
+  rules:
+    - !reference [.rule:skip_if_no_cluster]
+    - if: '$PIPELINE_TYPE =~ /MR_PIPELINE$/'
+    - if: '$PIPELINE_TYPE =~ /STABLE_BRANCH_PIPELINE$/'
+    - if: '$PIPELINE_TYPE =~ /FEATURE_BRANCH_PIPELINE$/'
 
 danger-review:
   image: registry.gitlab.com/gitlab-org/gitlab-build-images:danger
   stage: prepare
   cache: {}
-  only:
-    variables:
-      - $DANGER_GITLAB_API_TOKEN
-  except:
-    <<: *deps_pipeline
-    refs:
-      - master
-      - tags
-      - triggers
-      - *com_auto_deploy_branch_ref
-      - *stable_branch_ref
   script:
     - git version
     - danger_id=$(echo -n ${DANGER_GITLAB_API_TOKEN} | md5sum | awk '{print $1}' | cut -c5-10)
     - danger --fail-on-errors=true --verbose --danger_id=${danger_id}
+  rules:
+    - if: '$PIPELINE_TYPE =~ /MR_PIPELINE$/'
+    - if: '$PIPELINE_TYPE == "DOCS_PIPELINE"'
 
 rubocop:
   image: ruby:2.7.4-alpine
@@ -517,13 +490,6 @@ rubocop:
   dependencies: []
   before_script:
     - apk add make gcc libc-dev
-  except:
-    <<: *deps_pipeline
-    refs:
-      - master
-      - tags
-      - triggers
-      - *com_auto_deploy_branch_ref
   script:
     - bundle config set --local path 'gems'
     - bundle config set --local frozen 'true'
@@ -533,10 +499,14 @@ rubocop:
     key: "${CI_JOB_NAME}"
     paths:
     - gems
+  rules:
+    - if: '$PIPELINE_TYPE =~ /MR_PIPELINE$/'
+    - if: '$PIPELINE_TYPE =~ /BRANCH_PIPELINE$/'
+    - if: '$PIPELINE_TYPE == "DOCS_PIPELINE"'
 
 # Perform documentation linting on Markdown files
 check_docs_markdown:
-  image: registry.gitlab.com/gitlab-org/gitlab-docs/lint-markdown:alpine-3.16-vale-2.20.1-markdownlint-0.32.2
+  image: registry.gitlab.com/gitlab-org/gitlab-docs/lint-markdown:alpine-3.17-vale-2.24.0-markdownlint-0.33.0-markdownlint2-0.6.0
   stage: prepare
   cache: {}
   dependencies: []
@@ -545,21 +515,21 @@ check_docs_markdown:
     # Lint prose
     - vale --minAlertLevel error doc
     # Lint Markdown
-    - markdownlint --config .markdownlint.yml 'doc/**/*.md'
-  except:
-    variables:
-      - $DEPS_PIPELINE
-      - $TRIGGER_JOB
-    refs:
-      - *com_auto_deploy_branch_ref
+    - markdownlint-cli2-config .markdownlint.yml 'doc/**/*.md'
+  rules:
+    - if: '$PIPELINE_TYPE == "DOCS_PIPELINE"'
+    - if: '$PIPELINE_TYPE =~ /MR_PIPELINE$/'
+    - if: '$PIPELINE_TYPE =~ /BRANCH_PIPELINE$/'
+
 
 # Perform link checks on published HTML files
 check_docs_links:
-  image: registry.gitlab.com/gitlab-org/gitlab-docs/lint-html:alpine-3.16-ruby-2.7.6-0bc327a4
+  image: registry.gitlab.com/gitlab-org/gitlab-docs/lint-html:alpine-3.17-ruby-3.2.1-f53af000
   stage: prepare
   cache: {}
   dependencies: []
   before_script: []
+  tags: [ gitlab-org ]
   script:
     - mv doc/ /tmp/gitlab-docs/content/charts
     - cd /tmp/gitlab-docs
@@ -569,12 +539,10 @@ check_docs_links:
     - bundle exec nanoc check internal_links
     # Check the internal anchor links
     - bundle exec nanoc check internal_anchors
-  except:
-    variables:
-      - $DEPS_PIPELINE
-      - $TRIGGER_JOB
-    refs:
-      - *com_auto_deploy_branch_ref
+  rules:
+    - if: '$PIPELINE_TYPE == "DOCS_PIPELINE"'
+    - if: '$PIPELINE_TYPE =~ /MR_PIPELINE$/'
+    - if: '$PIPELINE_TYPE =~ /BRANCH_PIPELINE$/'
 
 .review-docs:
   image: ruby:2.7-alpine
@@ -591,20 +559,15 @@ check_docs_links:
   - chmod 755 trigger-build.rb
   variables:
     GIT_STRATEGY: none
-    DOCS_REVIEW_APPS_DOMAIN: 35.193.151.162.nip.io
+    DOCS_REVIEW_APPS_DOMAIN: docs.gitlab-review.app
     DOCS_GITLAB_REPO_SUFFIX: charts
     # By default, deploy the Review App using the `main` branch of the `gitlab-org/gitlab-docs` project
     DOCS_BRANCH: main
   when: manual
-  only:
-    refs:
-      - branches
-    variables:
-      - $CI_PROJECT_PATH == "gitlab-org/charts/gitlab" || $CI_PROJECT_PATH == "gitlab/charts/gitlab"
-  except:
-    - triggers
-    - master
-    - *com_auto_deploy_branch_ref
+  rules:
+    - if: '$PIPELINE_TYPE =~ /MR_PIPELINE$/'
+    - if: '$PIPELINE_TYPE =~ /FEATURE_BRANCH_PIPELINE$/'
+    - if: '$PIPELINE_TYPE == "DOCS_PIPELINE"'
 
 # Trigger a docs build in gitlab-docs
 # Useful to preview the docs changes live
@@ -614,7 +577,7 @@ review-docs-deploy:
   - .review-docs
   environment:
     name: review-docs/$REVIEW_REF_PREFIX$CI_COMMIT_REF_SLUG
-    url: http://${DOCS_BRANCH}-${DOCS_GITLAB_REPO_SUFFIX}-${REVIEW_REF_PREFIX}${CI_COMMIT_REF_SLUG}.${DOCS_REVIEW_APPS_DOMAIN}/${DOCS_GITLAB_REPO_SUFFIX}
+    url: https://${DOCS_BRANCH}-${DOCS_GITLAB_REPO_SUFFIX}-${REVIEW_REF_PREFIX}${CI_COMMIT_REF_SLUG}.${DOCS_REVIEW_APPS_DOMAIN}/${DOCS_GITLAB_REPO_SUFFIX}
     on_stop: review-docs-cleanup
   script:
   - ./trigger-build.rb docs deploy
@@ -645,6 +608,7 @@ review-docs-cleanup:
   extends: .source_autodevops
   script:
     - ./scripts/ci/install_spec_dependencies
+    - set_context
     - ./scripts/ci/run_specs
   artifacts:
     when: on_failure
@@ -655,28 +619,28 @@ review-docs-cleanup:
     key: "debian-${DEBIAN_VERSION}-ruby-${RUBY_VERSION}-${CI_JOB_NAME}"
     paths:
     - gems
-  <<: *except_deps_update
+  rules:
+    - if: '$PIPELINE_TYPE =~ /MR_PIPELINE$/'
+    - if: '$PIPELINE_TYPE =~ /STABLE_BRANCH_PIPELINE$/'
+    - if: '$PIPELINE_TYPE =~ /FEATURE_BRANCH_PIPELINE$/'
+    - if: '$PIPELINE_TYPE == "QA_KNAPSACK_UPDATE_PIPELINE"'
 
 review_specs_gke:
   extends: .specs
   variables:
     VARIABLES_FILE: "variables/review_gke"
     RSPEC_TAGS: type:feature
+    AGENT_NAME: "gke-ci-cluster"
+    KUBE_INGRESS_BASE_DOMAIN: "helm-charts.win"
+    KUBE_NAMESPACE: "helm-charts-win"
   environment:
     name: gke_review/$REVIEW_REF_PREFIX$CI_COMMIT_REF_SLUG
     url: https://gitlab-$CI_ENVIRONMENT_SLUG.$KUBE_INGRESS_BASE_DOMAIN
     on_stop: stop_review_gke
   resource_group: "gke-review-app-${REVIEW_REF_PREFIX}${CI_COMMIT_REF_SLUG}"
-  only:
-    refs:
-      - branches
-    variables:
-      - $KUBECONFIG && ($CI_PROJECT_PATH == "gitlab-org/charts/gitlab" || $CI_PROJECT_PATH == "gitlab/charts/gitlab")
-  except:
-    refs:
-      - master
-      - /(^docs[\/-].+|.+-docs$)/
-      - *com_auto_deploy_branch_ref
+  rules:
+    - !reference [.rule:skip_if_no_cluster]
+    - !reference [.specs, rules]
 
 review_specs_gke122:
   extends: .specs
@@ -688,16 +652,26 @@ review_specs_gke122:
     url: https://gitlab-$CI_ENVIRONENMENT_SLUG.$KUBE_INGRESS_BASE_DOMAIN
     on_stop: stop_review_gke122
   resource_group: "gke122-review-app-${REVIEW_REF_PREFIX}${CI_COMMIT_REF_SLUG}"
-  only:
-    refs:
-      - branches
-    variables:
-      - $KUBECONFIG && ($CI_PROJECT_PATH == "gitlab-org/charts/gitlab" || $CI_PROJECT_PATH == "gitlab/charts/gitlab")
-  except:
-    refs:
-      - master
-      - /(^docs[\/-].+|.+-docs$)/
-      - *com_auto_deploy_branch_ref
+  rules:
+    - !reference [.rule:skip_if_no_cluster]
+    - !reference [.specs, rules]
+
+review_specs_gke125:
+  extends: .specs
+  variables:
+    VARIABLES_FILE: "variables/review_gke125"
+    RSPEC_TAGS: type:feature
+    AGENT_NAME: "gke125-ci-cluster"
+    KUBE_INGRESS_BASE_DOMAIN: "cloud-native-v125.helm-charts.win"
+    KUBE_NAMESPACE: "helm-charts-win"
+  environment:
+    name: gke125_review/$REVIEW_REF_PREFIX$CI_COMMIT_REF_SLUG
+    url: https://gitlab-$CI_ENVIRONENMENT_SLUG.$KUBE_INGRESS_BASE_DOMAIN
+    on_stop: stop_review_gke125
+  resource_group: "gke125-review-app-${REVIEW_REF_PREFIX}${CI_COMMIT_REF_SLUG}"
+  rules:
+    - !reference [.rule:skip_if_no_cluster]
+    - !reference [.specs, rules]
 
 # Bring back when https://gitlab.com/gitlab-org/charts/gitlab/-/issues/2457 is fixed
 # review_specs_gke_dev:
@@ -710,11 +684,9 @@ review_specs_gke122:
 #     url: https://gitlab-$CI_ENVIRONMENT_SLUG.$KUBE_INGRESS_BASE_DOMAIN
 #     on_stop: stop_review_gke_dev
 #   resource_group: "gke-review-app-dev-${REVIEW_REF_PREFIX}${CI_COMMIT_REF_SLUG}"
-#   only:
-#     refs:
-#       - /.*-stable/@gitlab/charts/gitlab
-#     variables:
-#       - $KUBECONFIG && ($CI_PROJECT_PATH == "gitlab-org/charts/gitlab" || $CI_PROJECT_PATH == "gitlab/charts/gitlab")
+#   rules:
+#     - !reference [.rule:skip_if_no_cluster]
+#     - if: '$PIPELINE_TYPE == "BUILD_STABLE_BRANCH_PIPELINE"'
 
 review_specs_eks:
   extends: .specs
@@ -726,16 +698,9 @@ review_specs_eks:
     url: https://gitlab-$CI_ENVIRONMENT_SLUG.$KUBE_INGRESS_BASE_DOMAIN
     on_stop: stop_review_eks
   resource_group: "eks-review-app-${REVIEW_REF_PREFIX}${CI_COMMIT_REF_SLUG}"
-  only:
-    refs:
-      - branches
-    variables:
-      - $KUBECONFIG && ($CI_PROJECT_PATH == "gitlab-org/charts/gitlab" || $CI_PROJECT_PATH == "gitlab/charts/gitlab")
-  except:
-    refs:
-      - master
-      - /(^docs[\/-].+|.+-docs$)/
-      - *com_auto_deploy_branch_ref
+  rules:
+    - !reference [.rule:skip_if_no_cluster]
+    - !reference [.specs, rules]
 
 specs_without_cluster:
   extends: .specs
@@ -743,37 +708,61 @@ specs_without_cluster:
     RSPEC_TAGS: ~type:feature
   needs: []
   parallel: 6
-  except:
-    refs:
-      - /(^docs[\/-].+|.+-docs$)/
+  rules:
+    - !reference [.specs, rules]
+    - if: '$PIPELINE_TYPE == "AUTO_DEPLOY_PIPELINE"'
+    - if: '$PIPELINE_TYPE == "RELEASE_PIPELINE"'
 
 .production_specs:
   extends: .specs
-  <<: *except_deps_update
-  only:
-    refs:
-      - master
-    variables:
-      - $KUBECONFIG && ($CI_PROJECT_PATH == "gitlab-org/charts/gitlab" || $CI_PROJECT_PATH == "gitlab/charts/gitlab")
+  rules:
+    - !reference [.rule:skip_if_no_cluster]
+    - if: '$PIPELINE_TYPE =~ /DEFAULT_BRANCH_PIPELINE$/'
 
 production_specs_without_cluster:
   extends: .production_specs
   variables:
     RSPEC_TAGS: ~type:feature
   parallel: 6
-  except:
-    refs:
-      - /(^docs[\/-].+|.+-docs$)/
+  rules:
+    - !reference [.rule:skip_if_no_cluster]
+    - !reference [.specs, rules]
 
 production_specs_gke:
   extends: .production_specs
   variables:
     VARIABLES_FILE: "variables/stable_gke"
     RSPEC_TAGS: type:feature
+    AGENT_NAME: "gke-ci-cluster"
+    KUBE_INGRESS_BASE_DOMAIN: "helm-charts.win"
+    KUBE_NAMESPACE: "helm-charts-win"
   environment:
     name: gke_production
     url: https://gitlab.$KUBE_INGRESS_BASE_DOMAIN
   resource_group: "gke-production"
+
+production_specs_gke122:
+  extends: .production_specs
+  variables:
+    VARIABLES_FILE: "variables/stable_gke122"
+    RSPEC_TAGS: type:feature
+  environment:
+    name: k8s122_production
+    url: https://gitlab.$KUBE_INGRESS_BASE_DOMAIN
+  resource_group: "gke122-production"
+
+production_specs_gke125:
+  extends: .production_specs
+  variables:
+    VARIABLES_FILE: "variables/stable_gke125"
+    RSPEC_TAGS: type:feature
+    AGENT_NAME: "gke125-ci-cluster"
+    KUBE_INGRESS_BASE_DOMAIN: "cloud-native-v125.helm-charts.win"
+    KUBE_NAMESPACE: "helm-charts-win"
+  environment:
+    name: gke125_production
+    url: https://gitlab.$KUBE_INGRESS_BASE_DOMAIN
+  resource_group: "gke125-production"
 
 production_specs_eks:
   extends: .production_specs
@@ -796,26 +785,23 @@ production_specs_eks:
     QA_ARTIFACTS_DIR: $CI_PROJECT_DIR
     QA_CAN_TEST_PRAEFECT: "false"
   script:
+    - source scripts/ci/qa.sh
+    - qa_export_passwords
     - docker login -u gitlab-ci-token -p "$CI_JOB_TOKEN" "$CI_REGISTRY"
     - gem install gitlab-qa
     - source "${VARIABLES_FILE}"
-    - app_version=$(ruby -e "require 'yaml'; puts YAML.safe_load(File.read('Chart.yaml'))['appVersion']")
-    - qa_version="nightly"
-    - if [ "$app_version" != "master" && "$app_version" != "main" ]; then
-    -   qa_version="${app_version}-ee"
-    - fi
-    - SIGNUP_DISABLED=true QA_DEBUG=true GITLAB_USERNAME=root GITLAB_PASSWORD=$ROOT_PASSWORD GITLAB_ADMIN_USERNAME=root GITLAB_ADMIN_PASSWORD=$ROOT_PASSWORD EE_LICENSE=$REVIEW_APPS_EE_LICENSE gitlab-qa Test::Instance::Any EE:$qa_version https://$QA_ENVIRONMENT_URL -- $TEST_SUITE
+    - if [ -n "$QA_GITLAB_REVISION" ]; then
+    -   QA_IMAGE="registry.gitlab.com/gitlab-org/gitlab/gitlab-ee-qa:$QA_GITLAB_REVISION"
+    - else
+    -   QA_IMAGE="gitlab/gitlab-ee-qa:nightly" # this will default to use nightly https://gitlab.com/gitlab-org/gitlab-qa/-/blob/master/docs/what_tests_can_be_run.md#specifying-the-gitlab-version
+    - fi;
+    - echo "Running - 'gitlab-qa Test::Instance::Any --qa-image $QA_IMAGE EE https://$QA_ENVIRONMENT_URL -- $TEST_SUITE'"
+    - SIGNUP_DISABLED=true QA_DEBUG=true GITLAB_USERNAME=root GITLAB_PASSWORD=$ROOT_PASSWORD GITLAB_ADMIN_USERNAME=root GITLAB_ADMIN_PASSWORD=$ROOT_PASSWORD EE_LICENSE=$REVIEW_APPS_EE_LICENSE gitlab-qa Test::Instance::Any --qa-image $QA_IMAGE EE https://$QA_ENVIRONMENT_URL -- $TEST_SUITE
   artifacts:
     when: always
     expire_in: 7d
     paths:
     - ./gitlab-qa-run-*
-  <<: *except_deps_update
-  only:
-    refs:
-      - branches
-    variables:
-      - $KUBECONFIG && ($CI_PROJECT_PATH == "gitlab-org/charts/gitlab" || $CI_PROJECT_PATH == "gitlab/charts/gitlab")
   retry: 1
   allow_failure: true
 
@@ -832,9 +818,8 @@ wait_for_dev_images:
     CNG_REGISTRY: dev.gitlab.org:5005/gitlab/charts/components/images
   script:
     - bash scripts/wait_for_images.sh
-  only:
-    refs:
-      - /.*-stable/@gitlab/charts/gitlab
+  rules:
+    - if: '$PIPELINE_TYPE == "BUILD_STABLE_BRANCH_PIPELINE"'
 
 .publish_chart_package:
   # publish chart into repo's Packages
@@ -859,14 +844,14 @@ publish_tagged_package:
   variables:
     CHANNEL: "stable"
   rules:
-    - if: '$CI_SERVER_HOST == "dev.gitlab.org" && $CI_PROJECT_PATH == "gitlab/charts/gitlab" && $CI_COMMIT_TAG'
+    - if: '$PIPELINE_TYPE == "RELEASE_PIPELINE"'
 
 publish_audodeploy_package:
   extends: .publish_chart_package
   variables:
     CHANNEL: "autodeploy"
   rules:
-    - if: '$CI_SERVER_HOST == "dev.gitlab.org" && $CI_PROJECT_PATH == "gitlab/charts/gitlab" && $CI_COMMIT_TAG && $COMMIT_REF_NAME =~ /$AUTO_DEPLOY_TAG_REGEX/'
+    - if: '$PIPELINE_TYPE == "AUTO_DEPLOY_PIPELINE"'
 
 publish_devel_package:
   extends: .publish_chart_package
@@ -874,9 +859,7 @@ publish_devel_package:
     CHANNEL: "devel"
     VERSION_SUFFIX: "-${CI_PIPELINE_ID}"
   rules:
-    - if: $DEPS_PIPELINE || $TRIGGER_JOB
-      when: never
-    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+    - if: '$PIPELINE_TYPE =~ /DEFAULT_BRANCH_PIPELINE$/'
 
 release_package:
   stage: release-package
@@ -897,27 +880,27 @@ release_package:
         --form "variables[UNSTABLE]=$UNSTABLE"
         https://gitlab.com/api/v4/projects/2860651/trigger/pipeline
   rules:
-    - if: '$CI_SERVER_HOST == "dev.gitlab.org" && $CI_PROJECT_PATH == "gitlab/charts/gitlab" && $CI_COMMIT_TAG'
+    - if: '$PIPELINE_TYPE == "RELEASE_PIPELINE"'
       when: manual
-    - when: never
 
 .qa_branch:
   extends:
     - .qa
   parallel: 7
-  except:
-    refs:
-      - master
-      - /(^docs[\/-].+|.+-docs$)/
-      - *com_auto_deploy_branch_ref
+  rules:
+    - !reference [.rule:skip_if_no_cluster]
+    - if: '$PIPELINE_TYPE =~ /MR_PIPELINE$/'
+    - if: '$PIPELINE_TYPE =~ /STABLE_BRANCH_PIPELINE$/'
+    - if: '$PIPELINE_TYPE =~ /FEATURE_BRANCH_PIPELINE$/'
+    - if: '$PIPELINE_TYPE == "QA_KNAPSACK_UPDATE_PIPELINE"'
 
 .qa_production:
   extends:
     - .qa
   parallel: 7
-  only:
-    refs:
-      - master
+  rules:
+    - !reference [.rule:skip_if_no_cluster]
+    - if: '$PIPELINE_TYPE =~ /DEFAULT_BRANCH_PIPELINE$/'
 
 # QA jobs for Smoke and Reliable E2E suites
 
@@ -925,7 +908,7 @@ qa_gke:
   extends: .qa_branch
   variables:
     VARIABLES_FILE: "variables/review_gke"
-    TEST_SUITE: '--tag smoke --tag reliable --tag ~skip_live_env --tag ~orchestrated'
+    TEST_SUITE: $QA_SANITY_SUITE_OPTIONS
   environment:
     name: gke_review/$REVIEW_REF_PREFIX$CI_COMMIT_REF_SLUG
     on_stop: stop_review_gke
@@ -934,16 +917,25 @@ qa_gke122:
   extends: .qa_branch
   variables:
     VARIABLES_FILE: "variables/review_gke122"
-    TEST_SUITE: '--tag smoke --tag reliable --tag ~skip_live_env --tag ~orchestrated'
+    TEST_SUITE: $QA_SANITY_SUITE_OPTIONS
   environment:
     name: k8s122_review/$REVIEW_REF_PREFIX$CI_COMMIT_REF_SLUG
     on_stop: stop_review_gke122
+
+qa_gke125:
+  extends: .qa_branch
+  variables:
+    VARIABLES_FILE: "variables/review_gke125"
+    TEST_SUITE: $QA_SANITY_SUITE_OPTIONS
+  environment:
+    name: gke125_review/$REVIEW_REF_PREFIX$CI_COMMIT_REF_SLUG
+    on_stop: stop_review_gke125
 
 qa_eks:
   extends: .qa_branch
   variables:
     VARIABLES_FILE: "variables/review_eks"
-    TEST_SUITE: '--tag smoke --tag reliable --tag ~skip_live_env --tag ~orchestrated'
+    TEST_SUITE: $QA_SANITY_SUITE_OPTIONS
   environment:
     name: eks_review/$REVIEW_REF_PREFIX$CI_COMMIT_REF_SLUG
     on_stop: stop_review_eks
@@ -952,41 +944,137 @@ qa_gke_production:
   extends: .qa_production
   variables:
     VARIABLES_FILE: "variables/stable_gke"
-    TEST_SUITE: '--tag smoke --tag reliable --tag ~skip_live_env --tag ~orchestrated'
+    TEST_SUITE: $QA_SANITY_SUITE_OPTIONS
   environment:
     name: gke_production/$REVIEW_REF_PREFIX$CI_COMMIT_REF_SLUG
+
+qa_gke122_production:
+  extends: .qa_production
+  variables:
+    VARIABLES_FILE: "variables/stable_gke122"
+    TEST_SUITE: $QA_SANITY_SUITE_OPTIONS
+  environment:
+    name: k8s122_production/$REVIEW_REF_PREFIX$CI_COMMIT_REF_SLUG
+
+qa_gke125_production:
+  extends: .qa_production
+  variables:
+    VARIABLES_FILE: "variables/stable_gke125"
+    TEST_SUITE: $QA_SANITY_SUITE_OPTIONS
+  environment:
+    name: gke125_production/$REVIEW_REF_PREFIX$CI_COMMIT_REF_SLUG
 
 qa_eks_production:
   extends: .qa_production
   variables:
     VARIABLES_FILE: "variables/stable_eks"
-    TEST_SUITE: '--tag smoke --tag reliable --tag ~skip_live_env --tag ~orchestrated'
+    TEST_SUITE: $QA_SANITY_SUITE_OPTIONS
   environment:
     name: eks_production/$REVIEW_REF_PREFIX$CI_COMMIT_REF_SLUG
 
 # QA jobs for Full E2E suites
 
+.qa_production_full_suite_manual_trigger:
+  extends: .qa_production
+  when: manual
+
+.qa_full_suite_manual_trigger:
+  image: alpine
+  stage: qa-manual
+  when: manual
+  artifacts:
+    paths:
+    - variables
+
+qa_gke_full_suite_manual_trigger:
+  extends: .qa_full_suite_manual_trigger
+  script: echo 'The job will trigger Full E2E suite against GKE'
+
 qa_gke_manual_full_suite:
   extends: .qa_branch
-  parallel: 6
+  parallel: 7
   variables:
     VARIABLES_FILE: "variables/review_gke"
-    TEST_SUITE: '--tag ~smoke --tag ~reliable --tag ~orchestrated --tag ~transient'
+    TEST_SUITE: $QA_FULL_SUITE_OPTIONS
   environment:
     name: gke_review/$REVIEW_REF_PREFIX$CI_COMMIT_REF_SLUG
     on_stop: stop_review_gke
-  when: manual
+  needs: [ "qa_gke_full_suite_manual_trigger"]
+
+qa_gke_manual_full_suite_production:
+  extends: .qa_production_full_suite_manual_trigger
+  parallel: 7
+  variables:
+    VARIABLES_FILE: "variables/stable_gke"
+    TEST_SUITE: $QA_FULL_SUITE_OPTIONS
+  environment:
+    name: gke_production/$REVIEW_REF_PREFIX$CI_COMMIT_REF_SLUG
+  needs: [ "qa_gke_full_suite_manual_trigger"]
+
+qa_gke122_full_suite_manual_trigger:
+  extends: .qa_full_suite_manual_trigger
+  script: echo 'The job will trigger Full E2E suite against GKE122'
+
+qa_gke122_manual_full_suite:
+  extends: .qa_branch
+  parallel: 7
+  variables:
+    VARIABLES_FILE: "variables/review_gke122"
+    TEST_SUITE: $QA_FULL_SUITE_OPTIONS
+  environment:
+    name: k8s122_review/$REVIEW_REF_PREFIX$CI_COMMIT_REF_SLUG
+    on_stop: stop_review_gke122
+  needs: [ "qa_gke122_full_suite_manual_trigger"]
+
+qa_gke122_manual_full_suite_production:
+  extends: .qa_production_full_suite_manual_trigger
+  parallel: 7
+  variables:
+    VARIABLES_FILE: "variables/stable_gke122"
+    TEST_SUITE: $QA_FULL_SUITE_OPTIONS
+  environment:
+    name: k8s122_production/$REVIEW_REF_PREFIX$CI_COMMIT_REF_SLUG
+  needs: [ "qa_gke122_full_suite_manual_trigger"]
+
+qa_gke125_full_suite_manual_trigger:
+  extends: .qa_full_suite_manual_trigger
+  script: echo 'The job will trigger Full E2E suite against GKE125'
+
+qa_gke125_manual_full_suite:
+  extends: .qa_branch
+  parallel: 7
+  variables:
+    VARIABLES_FILE: "variables/review_gke125"
+    TEST_SUITE: $QA_FULL_SUITE_OPTIONS
+  environment:
+    name: gke125_review/$REVIEW_REF_PREFIX$CI_COMMIT_REF_SLUG
+    on_stop: stop_review_gke125
+  needs: [ "qa_gke125_full_suite_manual_trigger"]
+
+qa_eks_full_suite_manual_trigger:
+  extends: .qa_full_suite_manual_trigger
+  script: echo 'The job will trigger Full E2E suite against EKS'
 
 qa_eks_manual_full_suite:
   extends: .qa_branch
-  parallel: 6
+  parallel: 7
   variables:
     VARIABLES_FILE: "variables/review_eks"
-    TEST_SUITE: '--tag ~smoke --tag ~reliable --tag ~orchestrated --tag ~transient'
+    TEST_SUITE: $QA_FULL_SUITE_OPTIONS
   environment:
     name: eks_review/$REVIEW_REF_PREFIX$CI_COMMIT_REF_SLUG
     on_stop: stop_review_eks
-  when: manual
+  needs: [ "qa_eks_full_suite_manual_trigger"]
+
+qa_eks_manual_full_suite_production:
+  extends: .qa_production_full_suite_manual_trigger
+  parallel: 7
+  variables:
+    VARIABLES_FILE: "variables/stable_eks"
+    TEST_SUITE: $QA_FULL_SUITE_OPTIONS
+  environment:
+    name: eks_production/$REVIEW_REF_PREFIX$CI_COMMIT_REF_SLUG
+  needs: [ "qa_eks_full_suite_manual_trigger"]
 
 knapsack-qa-report:
   image:
@@ -1003,13 +1091,16 @@ knapsack-qa-report:
   script:
     - bundle exec rake "knapsack:upload[$QA_KNAPSACK_REPORT_FILE_PATTERN]"
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "schedule" && $KNAPSACK_GENERATE_REPORT == "true"'
+    - if: '$PIPELINE_TYPE == "QA_KNAPSACK_UPDATE_PIPELINE"'
 
 issue-bot:
   stage: report
   image: registry.gitlab.com/gitlab-org/distribution/issue-bot:latest
   script: /issue-bot
   rules:
-    # Only run when pipeline fails for the default branch on gitlab.com
-    - if: '$CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH && $CI_SERVER_HOST == "gitlab.com"'
+    - if: '$PIPELINE_TYPE =~ /DEFAULT_BRANCH_PIPELINE$/'
+      when: on_failure
+    - if: '$PIPELINE_TYPE =~ /STABLE_BRANCH_PIPELINE$/'
+      when: on_failure
+    - if: '$PIPELINE_TYPE =~ /RELEASE_PIPELINE$/'
       when: on_failure

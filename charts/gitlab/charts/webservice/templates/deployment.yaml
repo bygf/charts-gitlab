@@ -76,12 +76,9 @@ spec:
       {{- end }}
       {{- $nodeSelectors := dict "Values" (dict "global" (dict "nodeSelector" $.Values.global.nodeSelector) "nodeSelector" .nodeSelector) -}}
       {{- include "gitlab.nodeSelector" $nodeSelectors | nindent 6 }}
-      {{- if $.Values.priorityClassName }}
-      priorityClassName: {{ $.Values.priorityClassName }}
-      {{- end }}
-      securityContext:
-        runAsUser: {{ $.Values.securityContext.runAsUser }}
-        fsGroup: {{ $.Values.securityContext.fsGroup }}
+      {{- $priorityClassName := dict "Values" (dict "global" (dict "priorityClassName" $.Values.global.priorityClassName) "priorityClassName" $.Values.priorityClassName) -}}
+      {{- include "gitlab.priorityClassName" $priorityClassName | nindent 6 }}
+      {{- include "gitlab.podSecurityContext" $.Values.securityContext | nindent 6 }}
       {{- if eq (default $.Values.global.antiAffinity $.Values.antiAffinity) "hard" }}
       affinity:
         podAntiAffinity:
@@ -113,7 +110,7 @@ spec:
         - name: configure
           command: ['sh']
           args: [ '-c', 'sh -x /config-webservice/configure ; sh -x /config-workhorse/configure ; mkdir -p -m 3770 /tmp/gitlab']
-          image: {{ include "gitlab.busybox.image" (dict "local" $.Values.init "global" $.Values.global.busybox) | quote }}
+          image: {{ include "gitlab.busybox.image" (dict "local" $.Values.init "global" $.Values.global) | quote }}
           {{- include "gitlab.image.pullPolicy" $initImageCfg | indent 10 }}
           env:
             {{- include "webservice.extraEnv" (dict "global" $.Values.global "local" .) | nindent 12 }}
@@ -299,6 +296,10 @@ spec:
             {{- end }}
             {{- include "gitlab.certificates.volumeMount" $ | nindent 12 }}
             {{- include "gitlab.extraVolumeMounts" $ | nindent 12 }}
+          {{- if .deployment.startupProbe }}
+          startupProbe:
+            {{- toYaml .deployment.startupProbe | nindent 12 }}
+          {{- end }}
           livenessProbe:
             httpGet:
               path: /-/liveness
@@ -334,7 +335,7 @@ spec:
           resources:
             {{- toYaml .resources | nindent 12 }}
         - name: gitlab-workhorse
-          image: "{{ coalesce $.Values.workhorse.image (include "workhorse.repository" $) }}:{{ coalesce $.Values.workhorse.tag (include "gitlab.versionTag" $ ) }}"
+          image: "{{ coalesce $.Values.workhorse.image (include "workhorse.repository" $) }}:{{ coalesce $.Values.workhorse.tag (include "gitlab.versionTag" $ ) }}{{ include "gitlab.image.tagSuffix" $ }}"
           {{- include "gitlab.image.pullPolicy" $imageCfg | indent 10 }}
           ports:
             - containerPort: {{ $.Values.service.workhorseInternalPort }}
@@ -380,6 +381,10 @@ spec:
             {{- include "gitlab.certificates.volumeMount" $ | nindent 12 }}
             {{- include "gitlab.appConfig.kerberos.volumeMount" $ | nindent 12 }}
             {{- include "gitlab.extraVolumeMounts" $ | nindent 12 }}
+          {{- if .workhorse.startupProbe }}
+          startupProbe:
+            {{- toYaml .workhorse.startupProbe | nindent 12 }}
+          {{- end }}
           livenessProbe:
             exec:
               command:
@@ -465,6 +470,13 @@ spec:
                 - key: "tls.key"
                   path: "webservice-metrics/webservice-metrics.key"
           {{- end }}
+          {{- if $.Values.global.appConfig.microsoft_graph_mailer.enabled }}
+          - secret:
+              name: {{ $.Values.global.appConfig.microsoft_graph_mailer.client_secret.secret | required "Missing required secret containing the OAuth2 Client ID for outgoing email. Make sure to set `global.appConfig.microsoft_graph_mailer.client_secret.secret`" }}
+              items:
+                - key: {{ $.Values.global.appConfig.microsoft_graph_mailer.client_secret.key }}
+                  path: microsoft_graph_mailer/client_secret
+          {{- end }}
           {{- include "gitlab.appConfig.incomingEmail.mountSecrets" $ | nindent 10 }}
           {{- include "gitlab.appConfig.serviceDeskEmail.mountSecrets" $ | nindent 10 }}
           {{- include "gitlab.gitaly.clientSecrets" $ | nindent 10 }}
@@ -492,6 +504,7 @@ spec:
                   path: gitlab-workhorse/secret
           {{- include "gitlab.pages.mountSecrets" $ | nindent 10 }}
           {{- include "gitlab.kas.mountSecrets" $ | nindent 10 }}
+          {{- include "gitlab.suggestedReviewers.mountSecrets" $ | nindent 10 }}
           {{- include "gitlab.minio.mountSecrets" $ | nindent 10 }}
           {{- include "gitlab.appConfig.objectStorage.mountSecrets" (dict "name" "object_store" "config" $.Values.global.appConfig.object_store) | nindent 10 }}
           {{- include "gitlab.appConfig.objectStorage.mountSecrets" (dict "name" "artifacts" "config" $.Values.global.appConfig.artifacts) | nindent 10 }}

@@ -1,7 +1,7 @@
 ---
 apiVersion: v1
 name: gitlab
-version: 6.4.1
+version: 6.10.0
 appVersion: master
 description: The One DevOps Platform
 keywords:

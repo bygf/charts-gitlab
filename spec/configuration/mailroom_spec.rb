@@ -5,9 +5,7 @@ require 'hash_deep_merge'
 
 describe 'Mailroom configuration' do
   let(:default_values) do
-    YAML.safe_load(%(
-      certmanager-issuer:
-        email: test@example.com
+    HelmTemplate.with_defaults(%(
       global:
         appConfig:
           incomingEmail:
@@ -51,9 +49,7 @@ describe 'Mailroom configuration' do
     let(:app_config) { incoming_email_settings }
 
     let(:values) do
-      YAML.safe_load(%(
-        certmanager-issuer:
-          email: test@example.com
+      HelmTemplate.with_defaults(%(
         global:
           appConfig: #{app_config.to_json}
       ))
@@ -116,6 +112,7 @@ describe 'Mailroom configuration' do
         expect(mailbox[:email]).to eq('servicedesk')
         expect(mailbox[:name]).to eq('inbox')
         expect(mailbox[:delete_after_delivery]).to be true
+        expect(mailbox[:expunge_deleted]).to be false
         expect(mailbox[:inbox_method]).to eq('imap')
         expect(mailbox[:host]).to eq('example2.com')
         expect(mailbox[:port]).to eq(587)
@@ -144,9 +141,7 @@ describe 'Mailroom configuration' do
     let(:app_config) { incoming_email_settings }
 
     let(:values) do
-      YAML.safe_load(%(
-        certmanager-issuer:
-          email: test@example.com
+      HelmTemplate.with_defaults(%(
         global:
           appConfig: #{app_config.to_json}
       ))
@@ -235,6 +230,8 @@ describe 'Mailroom configuration' do
         expect(t.exit_code).to eq(0)
         expect(mail_room_yml[:mailboxes].length).to eq(2)
         expect(raw_mail_room_yml).to include(%(:client_secret: <%= File.read("/etc/gitlab/mailroom/client_id_service_desk").strip.to_json %>))
+        expect(mailbox[:delete_after_delivery]).to be true
+        expect(mailbox[:expunge_deleted]).to be false
         expect(mailbox[:inbox_options]).to be_a(Hash)
         expect(mailbox[:inbox_options][:tenant_id]).to eq('OTHER-TENANT-ID')
         expect(mailbox[:inbox_options][:client_id]).to eq('OTHER-CLIENT-ID')
@@ -258,6 +255,8 @@ describe 'Mailroom configuration' do
               clientSecret:
                 secret: mailroom-client-id
               pollInterval: 45
+              deleteAfterDelivery: false
+              expungeDeleted: true
           )))
         end
 
@@ -267,6 +266,8 @@ describe 'Mailroom configuration' do
           expect(t.exit_code).to eq(0)
           expect(mail_room_yml[:mailboxes].length).to eq(2)
           expect(raw_mail_room_yml).to include(%(:client_secret: <%= File.read("/etc/gitlab/mailroom/client_id_service_desk").strip.to_json %>))
+          expect(mailbox[:delete_after_delivery]).to be false
+          expect(mailbox[:expunge_deleted]).to be true
           expect(mailbox[:inbox_options]).to be_a(Hash)
           expect(mailbox[:inbox_options][:azure_ad_endpoint]).to eq('https://login.microsoftonline.us')
           expect(mailbox[:inbox_options][:graph_endpoint]).to eq('https://graph.microsoft.us')
@@ -428,9 +429,7 @@ describe 'Mailroom configuration' do
       let(:app_config) { incoming_email_settings }
 
       let(:values) do
-        YAML.safe_load(%(
-          certmanager-issuer:
-            email: test@example.com
+        HelmTemplate.with_defaults(%(
           global:
             appConfig: #{app_config.to_json}
         ))
@@ -570,9 +569,7 @@ describe 'Mailroom configuration' do
       let(:auth_token_secret_key) { "test-mailroom-auth-token-key" }
 
       let(:values) do
-        YAML.safe_load(%(
-          certmanager-issuer:
-            email: test@example.com
+        HelmTemplate.with_defaults(%(
           global:
             appConfig: #{app_config.to_json}
         ))

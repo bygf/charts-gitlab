@@ -30,6 +30,7 @@ gitlab:
         successfulJobsHistoryLimit: 3
         suspend: false
         backoffLimit: 6
+        safeToEvict: false
         restartPolicy: "OnFailure"
         resources:
           requests:
@@ -45,6 +46,7 @@ gitlab:
     persistence:
       enabled: false
       accessMode: 'ReadWriteOnce'
+      useGenericEphemeralVolume: false
       size: '10Gi'
     resources:
       requests:
@@ -61,6 +63,7 @@ gitlab:
 | `common.labels`                             | Supplemental labels that are applied to all objects created by this chart.  | `{}` |
 | `antiAffinityLabels.matchLabels`            | Labels for setting anti-affinity options     |                              |
 | `backups.cron.activeDeadlineSeconds`        | Backup CronJob active deadline seconds (if null, no active deadline is applied)| `null` |
+| `backups.cron.safeToEvict`                  | Autoscaling safe-to-evict annotation         | false                        |
 | `backups.cron.backoffLimit`                 | Backup CronJob backoff limit| `6` |
 | `backups.cron.concurrencyPolicy`            | Kubernetes Job concurrency policy            | `Replace`                    |
 | `backups.cron.enabled`                      | Backup CronJob enabled flag                  | false                        |
@@ -81,7 +84,7 @@ gitlab:
 | `backups.cron.startingDeadlineSeconds`      | Backup cron job starting deadline, in seconds (if null, no starting deadline is applied) | `null`                      |
 | `backups.cron.successfulJobsHistoryLimit`   | Number of successful backup jobs list in history | `3`                      |
 | `backups.cron.suspend`                      | Backup cron job is suspended | `false`                      |
-| `backups.objectStorage.backend`             | Object storage provider to use (`s3` or `gcs`) | `s3`                       |
+| `backups.objectStorage.backend`             | Object storage provider to use (`s3`, `gcs` or `azure`) | `s3`                       |
 | `backups.objectStorage.config.gcpProject`   | GCP Project to use when backend is `gcs`     | ""                           |
 | `backups.objectStorage.config.key`          | Key containing credentials in secret         | ""                           |
 | `backups.objectStorage.config.secret`       | Object storage credentials secret            | ""                           |
@@ -101,15 +104,18 @@ gitlab:
 | `persistence.enabled`                       | Toolbox enable persistence flag          | false                        |
 | `persistence.matchExpressions`              | Label-expression matches to bind             |                              |
 | `persistence.matchLabels`                   | Label-value matches to bind                  |                              |
+| `persistence.useGenericEphemeralVolume`     | Use a [generic ephemeral volume](https://kubernetes.io/docs/concepts/storage/ephemeral-volumes/#generic-ephemeral-volumes) | false |
 | `persistence.size`                          | Toolbox persistence volume size          | `10Gi`                       |
 | `persistence.storageClass`                  | StorageClass name for provisioning           |                              |
 | `persistence.subPath`                       | Toolbox persistence volume mount path    |                              |
 | `persistence.volumeName`                    | Existing PersistentVolume name               |                              |
 | `podLabels`                                 | Labels for running Toolbox Pods          | {}                           |
+| `priorityClassName`                         | [Priority class](https://kubernetes.io/docs/concepts/scheduling-eviction/pod-priority-preemption/) assigned to pods. |                              |
 | `replicas`                                  | Number of Toolbox Pods to run            | `1`                          |
 | `resources.requests`                        | Toolbox minimum requested resources      | { `cpu`: `50m`, `memory`: `350M` |
 | `securityContext.fsGroup`                   | Group ID under which the pod should be started | `1000`                     |
 | `securityContext.runAsUser`                 | User ID under which the pod should be started  | `1000`                     |
+| `securityContext.fsGroupChangePolicy`       | Policy for changing ownership and permission of the volume (requires Kubernetes 1.23) | |
 | `serviceAccount.annotations`                | Annotations for ServiceAccount               | {}                           |
 | `serviceAccount.enabled`                    | Flag for using ServiceAccount                | false                        |
 | `serviceAccount.create`                     | Flag for creating a ServiceAccount           | false                        |

@@ -5,10 +5,7 @@ require 'hash_deep_merge'
 
 describe 'Gitaly configuration' do
   let(:default_values) do
-    YAML.safe_load(%(
-      certmanager-issuer:
-        email: test@example.com
-    ))
+    HelmTemplate.defaults
   end
 
   context 'When disabled and provided external instances' do
@@ -112,16 +109,16 @@ describe 'Gitaly configuration' do
   context 'when rendering gitaly securityContexts' do
     context 'when the administrator changes or deletes values' do
       using RSpec::Parameterized::TableSyntax
-      where(:fsGroup, :runAsUser, :expectedContext) do
-        nil | nil | { 'fsGroup' => 1000, 'runAsUser' => 1000 }
-        nil | ""  | { 'fsGroup' => 1000 }
-        nil | 24  | { 'fsGroup' => 1000, 'runAsUser' => 24 }
-        42  | nil | { 'fsGroup' => 42, 'runAsUser' => 1000 }
-        42  | ""  | { 'fsGroup' => 42 }
-        42  | 24  | { 'fsGroup' => 42, 'runAsUser' => 24 }
-        ""  | nil | { 'runAsUser' => 1000 }
-        ""  | ""  | nil
-        ""  | 24  | { 'runAsUser' => 24 }
+      where(:fsGroup, :runAsUser, :fsGroupChangePolicy, :expectedContext) do
+        nil | nil | "OnRootMismatch" | { 'fsGroup' => 1000, 'runAsUser' => 1000, 'fsGroupChangePolicy' => "OnRootMismatch" }
+        nil | ""  | nil              | { 'fsGroup' => 1000 }
+        nil | 24  | ""               | { 'fsGroup' => 1000, 'runAsUser' => 24 }
+        42  | nil | "OnRootMismatch" | { 'fsGroup' => 42, 'runAsUser' => 1000, 'fsGroupChangePolicy' => "OnRootMismatch" }
+        42  | ""  | nil              | { 'fsGroup' => 42 }
+        42  | 24  | ""               | { 'fsGroup' => 42, 'runAsUser' => 24 }
+        ""  | nil | "OnRootMismatch" | { 'runAsUser' => 1000 }
+        ""  | ""  | nil              | nil
+        ""  | 24  | ""               | { 'runAsUser' => 24 }
       end
 
       with_them do
@@ -131,6 +128,7 @@ describe 'Gitaly configuration' do
               gitaly:
                 securityContext:
                   #{"fsGroup: #{fsGroup}" unless fsGroup.nil?}
+                  #{"fsGroupChangePolicy: #{fsGroupChangePolicy}" unless fsGroupChangePolicy.nil?}
                   #{"runAsUser: #{runAsUser}" unless runAsUser.nil?}
           )).deep_merge(default_values)
         end
@@ -320,6 +318,47 @@ describe 'Gitaly configuration' do
         config_toml = template.dig('ConfigMap/test-gitaly','data','config.toml.erb')
 
         expect(config_toml).not_to match /^\[pack_objects_cache\]/
+      end
+    end
+  end
+
+  context 'gpg signing' do
+    let(:values) do
+      HelmTemplate.with_defaults %(
+        gitlab:
+          gitaly:
+            gpgSigning:
+              enabled: #{gpg_signing_enabled}
+              secret: #{gpg_secret_name}
+              key: #{gpg_secret_key}
+      )
+    end
+
+    context 'when enabled' do
+      let(:gpg_signing_enabled) { true }
+      let(:gpg_secret_name) { 'gpgSecret' }
+      let(:gpg_secret_key) { 'gpgisfun' }
+
+      let(:template) { HelmTemplate.new(values) }
+
+      it 'populates a signing_key field in config.toml.erb' do
+        config_toml = template.dig('ConfigMap/test-gitaly','data','config.toml.erb')
+
+        expect(config_toml).to include "signing_key = '/etc/gitlab-secrets/gitaly/signing_key.gpg'"
+      end
+    end
+
+    context 'when disabled' do
+      let(:gpg_signing_enabled) { false }
+      let(:gpg_secret_name) { 'dont use me' }
+      let(:gpg_secret_key) { 'gpgisunfun' }
+
+      let(:template) { HelmTemplate.new(values) }
+
+      it 'does not populate a signing_key field in config.toml.erb' do
+        config_toml = template.dig('ConfigMap/test-gitaly','data','config.toml.erb')
+
+        expect(config_toml).not_to match /^signing_key = /
       end
     end
   end
