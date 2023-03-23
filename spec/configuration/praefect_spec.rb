@@ -5,10 +5,7 @@ require 'hash_deep_merge'
 
 describe 'Praefect configuration' do
   let(:default_values) do
-    YAML.safe_load(%(
-      certmanager-issuer:
-        email: test@example.com
-    ))
+    HelmTemplate.defaults
   end
 
   let(:praefect_resources) do
@@ -148,6 +145,41 @@ describe 'Praefect configuration' do
         gitaly_resources_with_multiple_storages.each do |r|
           expect(template.dig(r)).to be_truthy
         end
+      end
+    end
+
+    context 'with custom defaultReplicationFactors' do
+      let(:values_custom_defaultreplicationfactor) do
+        YAML.safe_load(%(
+          global:
+            praefect:
+              virtualStorages:
+              - name: default
+                gitalyReplicas: 5
+                maxUnavailable: 2
+                defaultReplicationFactor: 3
+              - name: secondary
+                gitalyReplicas: 4
+                maxUnavailable: 1
+                defaultReplicationFactor: 2
+        )).deep_merge(values_praefect_enabled)
+      end
+
+      let(:template) { HelmTemplate.new(values_custom_defaultreplicationfactor) }
+
+      it 'templates successfully' do
+        expect(template.exit_code).to eq(0)
+      end
+
+      it 'correctly specifies the defaultReplicationFactors' do
+        vs1_selection = "name = 'default'\n" \
+                        "default_replication_factor = 3"
+
+        vs2_selection = "name = 'secondary'\n" \
+                        "default_replication_factor = 2"
+
+        expect(template.dig('ConfigMap/test-praefect', 'data', 'config.toml.erb')).to include(vs1_selection)
+        expect(template.dig('ConfigMap/test-praefect', 'data', 'config.toml.erb')).to include(vs2_selection)
       end
     end
 

@@ -9,8 +9,12 @@ info: To determine the technical writer assigned to the Stage/Group associated w
 The `webservice` sub-chart provides the GitLab Rails webserver with two Webservice workers
 per pod. (The minimum necessary for a single pod to be able to serve any web request in GitLab)
 
-Currently the container used in the chart also includes a copy of GitLab Workhorse,
-which we haven't split out yet.
+The pods of this chart make use of two containers: `gitlab-workhorse` and `webservice`.
+[GitLab Workhorse](https://gitlab.com/gitlab-org/gitlab/-/tree/master/workhorse) listens on
+port `8181`, and should _always_ be the destination for inbound traffic to the pod.
+The `webservice` houses the GitLab [Rails codebase](https://gitlab.com/gitlab-org/gitlab),
+listens on `8080`, and is accessible for metrics collection purposes.
+`webservice` should never recieve normal traffic directly.
 
 ## Requirements
 
@@ -109,6 +113,7 @@ to the `helm install` command using the `--set` flags.
 | `service.externalPort`                              | `8080`                                                          | Webservice exposed port                                                                                                                                                                                                                                                                                                         |
 | `securityContext.fsGroup`                           | `1000`                                                          | Group ID under which the pod should be started                                                                                                                                                                                                                                                                                  |
 | `securityContext.runAsUser`                         | `1000`                                                          | User ID under which the pod should be started                                                                                                                                                                                                                                                                                   |
+| `securityContext.fsGroupChangePolicy`               |                                                                 | Policy for changing ownership and permission of the volume (requires Kubernetes 1.23)                                                                                                                                                                                                                                           |
 | `serviceLabels`                                     | `{}`                                                            | Supplemental service labels                                                                                                                                                                                                                                                                                                     |
 | `service.internalPort`                              | `8080`                                                          | Webservice internal port                                                                                                                                                                                                                                                                                                        |
 | `service.type`                                      | `ClusterIP`                                                     | Webservice service type                                                                                                                                                                                                                                                                                                         |
@@ -337,13 +342,12 @@ listener uses the same TLS certificate that is specified by `gitlab.webservice.w
 
 The primary use case for enabling TLS is to provide encryption via HTTPS
 for [scraping Prometheus metrics](https://docs.gitlab.com/ee/administration/monitoring/prometheus/gitlab_metrics.html).
-For this reason, the TLS certificate should include the Webservice
-hostname (ex: `RELEASE-webservice-default.default.svc`) in the Common
-Name (CN) or Subject Alternate Name (SAN).
 
-NOTE:
-[The Prometheus server bundled with the chart](https://gitlab.com/gitlab-org/charts/gitlab/-/issues/3335) does not yet
-support scraping of HTTPS endpoints.
+For Prometheus to scrape the `/metrics/` endpoint using HTTPS, additional
+configuration is required for the certificate's `CommonName` attribute or
+a `SubjectAlternativeName` entry. See
+[Configuring Prometheus to scrape TLS-enabled endpoints](../../../installation/tools.md#configure-prometheus-to-scrape-tls-enabled-endpoints)
+for those requirements.
 
 TLS can be enabled on the `webservice` container by the settings `gitlab.webservice.tls.enabled`:
 

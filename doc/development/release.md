@@ -4,11 +4,11 @@ group: Distribution
 info: To determine the technical writer assigned to the Stage/Group associated with this page, see https://about.gitlab.com/handbook/product/ux/technical-writing/#assignments
 ---
 
-# Releases
+# Helm chart releases
 
 ## Chart Versioning
 
-### Major Releases
+### Major releases
 
 Major releases are for breaking changes **and** significant milestones in the chart or GitLab release.
 
@@ -18,7 +18,7 @@ We bump the major version number for:
 - Breaking changes in GitLab or in the charts, requiring manual interaction to upgrade your existing install.
 - Major updates in the GitLab image (for example, the release of 12.0.0).
 
-### Minor Releases
+### Minor releases
 
 Minor releases will iterate with GitLab image minor releases, and at our own discretion for changes here in the chart.
 
@@ -28,7 +28,7 @@ We will bump it for:
 - changes to our default values in the charts that may increase resource usage (addition of subcharts or pods, additional services or ingresses added)
 - Other functionality changes that we feel warrants more visibility.
 
-### Patch Releases
+### Patch releases
 
 Patch releases for changes that are considered to be very stable updates to the previous release. This includes patch release of the GitLab image.
 
@@ -100,11 +100,19 @@ Related to releasing using the proposed branching strategy
 
 ## Releasing the chart
 
-Releasing a new version of the chart is handled by the Helm release tasks in the [release tools repository](https://gitlab.com/gitlab-org/release-tools)
+Releasing a new version of the chart is handled by the Helm release tasks in the [release tools repository](https://gitlab.com/gitlab-org/release-tools).
 
-By default, this task will be automatically run from CI when a new release image is tagged in the [CNG image repository](https://gitlab.com/gitlab-org/build/CNG)
+Releases are done as part of GitLab releases. When necessary, the [Distribution](https://about.gitlab.com/handbook/engineering/development/enablement/systems/distribution/)
+team may initiate additional chart releases. The release tool triggers pipelines for packaging and publishing the
+chart. See the `release_chart` job in the [`charts.gitlab.io` repository](https://gitlab.com/charts/charts.gitlab.io).
 
-> Currently the `helm-release-tools` branch from the release tools repository is used to release the chart
+Further, the release tool automates management of the:
+
+- [changelog](changelog.md),
+- chart versions,
+- chart appVersions,
+- value of `global.gitlabVersion` and
+- [GitLab version to Chart version mappings](../installation/version_mappings.md).
 
 ### Development builds
 

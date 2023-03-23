@@ -55,8 +55,6 @@ function deploy() {
   if [[ -n "$image_branch" ]]; then
       gitlab_version_args=(
       "--set" "global.gitlabVersion=${image_branch}"
-      "--set" "global.certificates.image.tag=${image_branch}"
-      "--set" "global.kubectl.image.tag=${image_branch}"
       "--set" "gitlab.gitaly.image.tag=${image_branch}"
       "--set" "gitlab.gitlab-shell.image.tag=${image_branch}"
       "--set" "gitlab.gitlab-exporter.image.tag=${image_branch}"
@@ -74,10 +72,10 @@ function deploy() {
 
   #ROOT_PASSWORD=$(cat /dev/urandom | LC_TYPE=C tr -dc "[:alpha:]" | head -c 16)
   #echo "Generated root login: $ROOT_PASSWORD"
-  kubectl create secret generic "${RELEASE_NAME}-gitlab-initial-root-password" --from-literal=password=$ROOT_PASSWORD -o yaml --dry-run | kubectl replace --force -f -
+  kubectl create secret generic "${RELEASE_NAME}-gitlab-initial-root-password" --from-literal=password=$ROOT_PASSWORD -o yaml --dry-run=client | kubectl replace --force -f -
 
   echo "${REVIEW_APPS_EE_LICENSE}" > /tmp/license.gitlab
-  kubectl create secret generic "${RELEASE_NAME}-gitlab-license" --from-file=license=/tmp/license.gitlab -o yaml --dry-run | kubectl replace --force -f -
+  kubectl create secret generic "${RELEASE_NAME}-gitlab-license" --from-file=license=/tmp/license.gitlab -o yaml --dry-run=client | kubectl replace --force -f -
 
   # YAML_FILE=""${KUBE_INGRESS_BASE_DOMAIN//\./-}.yaml"
 
@@ -236,6 +234,16 @@ function ensure_namespace() {
   kubectl describe namespace "$NAMESPACE" || kubectl create namespace "$NAMESPACE"
 }
 
+function set_context() {
+  if [ -z ${AGENT_NAME+x} ] || [ -z ${AGENT_PROJECT_PATH+x} ]; then
+    echo "No AGENT_NAME or AGENT_PROJECT_PATH set, using the default"
+  else
+    kubectl config get-contexts
+    kubectl config use-context ${AGENT_PROJECT_PATH}:${AGENT_NAME}
+    kubectl config set-context --current --namespace=${NAMESPACE}
+  fi
+}
+
 function check_kube_domain() {
   if [ -z ${KUBE_INGRESS_BASE_DOMAIN+x} ]; then
     echo "ERROR: In order to deploy, KUBE_INGRESS_BASE_DOMAIN must be set as a variable at the group or project level, or manually added in .gitlab-cy.yml"
@@ -246,12 +254,6 @@ function check_kube_domain() {
 }
 
 function check_domain_ip() {
-  # Don't run on EKS clusters
-  if [[ "$CI_ENVIRONMENT_SLUG" =~ ^eks.* ]]; then
-    echo "Not running on EKS cluster"
-    return 0
-  fi
-
   # Expect the `DOMAIN` is a wildcard.
   domain_ip=$(nslookup gitlab$DOMAIN 2>/dev/null | grep "Address: \d" | awk '{print $2}')
   if [ -z $domain_ip ]; then
@@ -304,7 +306,7 @@ function create_secret() {
     --docker-username="$CI_REGISTRY_USER" \
     --docker-password="$CI_REGISTRY_PASSWORD" \
     --docker-email="$GITLAB_USER_EMAIL" \
-    -o yaml --dry-run | kubectl replace -n "$NAMESPACE" --force -f -
+    -o yaml --dry-run=client | kubectl replace -n "$NAMESPACE" --force -f -
 }
 
 function delete() {

@@ -11,6 +11,14 @@ Options can be specified using Helm's `--set option.name=value` command-line opt
 This guide will cover required values and common options.
 For a complete list of options, read [Installation command line options](command-line-options.md).
 
+WARNING:
+The default Helm chart configuration is **not intended for production**.
+The default chart creates a proof of concept (PoC) implementation where all GitLab
+services are deployed in the cluster. For production deployments, additional setup and configuration is required.
+
+For a production deployment, you should have strong working knowledge of Kubernetes.
+This method of deployment has different management, observability, and concepts than traditional deployments.
+
 ## Deploy using Helm
 
 Once you have all of your configuration options collected, we can get any dependencies and
@@ -79,6 +87,16 @@ By default, the Helm charts use the Enterprise Edition of GitLab. The Enterprise
 ```shell
 --set global.edition=ce
 ```
+
+## Convert Community Edition to Enterprise Edition
+
+If you [deployed the Community Edition](#deploy-the-community-edition) and you
+want to convert to the Enterprise Edition, you need to redeploy GitLab without
+specifying `--set global.edition=ce`. If you also specified
+individual images (for example, `--set gitlab.unicorn.image.repository=registry.gitlab.com/gitlab-org/build/cng/gitlab-unicorn-ce`),
+you need to omit any occurrence of those images.
+
+After the deployment, you can [activate your Enterprise Edition license](https://docs.gitlab.com/ee/user/admin_area/license.html).
 
 ## Install the product documentation
 

@@ -9,13 +9,13 @@ info: To determine the technical writer assigned to the Stage/Group associated w
 Before upgrading your GitLab installation, you need to check the
 [changelog](https://gitlab.com/gitlab-org/charts/gitlab/blob/master/CHANGELOG.md)
 corresponding to the specific release you want to upgrade to and look for any
-[release notes](../releases/index.md) that might pertain to the new GitLab chart
+[release notes](version_mappings.md#release-notes-for-each-version) that might pertain to the new GitLab chart
 version.
 
 NOTE:
 **Zero-downtime upgrades** are not available with the GitLab charts.
 Ongoing work to support this feature can be tracked via
-[the GitLab Operator issue](https://gitlab.com/gitlab-org/cloud-native/gitlab-operator/-/issues/59).
+[the GitLab Operator epic](https://gitlab.com/groups/gitlab-org/cloud-native/-/epics/52).
 
 We also recommend that you take a [backup](../backup-restore/index.md) first. Also note that you
 must provide all values using `helm upgrade --set key=value` syntax or `-f values.yaml` instead of
@@ -27,7 +27,7 @@ You can retrieve your previous `--set` arguments cleanly, with
 file via `-f`. Thus `helm upgrade gitlab gitlab/gitlab -f gitlab.yaml`.
 This safely replaces the behavior of `--reuse-values`
 
-Mappings between chart versioning and GitLab versioning can be found [here](../installation/version_mappings.md).
+See [mappings](../installation/version_mappings.md) between chart versioning and GitLab versioning.
 
 ## Steps
 

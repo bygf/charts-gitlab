@@ -19,15 +19,67 @@ helm repo add gitlab https://charts.gitlab.io/
 helm search repo -l gitlab/gitlab
 ```
 
+## Release notes for each version
+
+- [6.0](../releases/6_0.md)
+- [5.0](../releases/5_0.md)
+- [4.0](../releases/4_0.md)
+- [3.0](../releases/3_0.md)
+- [2.0](../releases/2_0.md)
+- [1.0](../releases/1_0.md)
+- [Beta](../releases/beta.md)
+- [Alpha](../releases/alpha.md)
+
 ## Previous chart versions
 
 The table below maps some of the key previous chart versions and GitLab versions.
 
 | Chart version | GitLab version |
 |---------------|----------------|
+| 6.10.0 | 15.10.0 |
+| 6.9.3 | 15.9.3 |
+| 6.9.2 | 15.9.2 |
+| 6.9.1 | 15.9.1 |
+| 6.9.0 | 15.9.0 |
+| 6.8.4 | 15.8.4 |
+| 6.8.3 | 15.8.3 |
+| 6.8.2 | 15.8.2 |
+| 6.8.1 | 15.8.1 |
+| 6.8.0 | 15.8.0 |
+| 6.7.8 | 15.7.8 |
+| 6.7.7 | 15.7.7 |
+| 6.7.6 | 15.7.6 |
+| 6.7.5 | 15.7.5 |
+| 6.7.3 | 15.7.3 |
+| 6.7.2 | 15.7.2 |
+| 6.7.1 | 15.7.1 |
+| 6.7.0 | 15.7.0 |
+| 6.6.8 | 15.6.8 |
+| 6.6.7 | 15.6.7 |
+| 6.6.6 | 15.6.6 |
+| 6.6.4 | 15.6.4 |
+| 6.6.3 | 15.6.3 |
+| 6.6.2 | 15.6.2 |
+| 6.6.1 | 15.6.1 |
+| 6.6.0 | 15.6.0 |
+| 6.5.9 | 15.5.9 |
+| 6.5.8 | 15.5.7 |
+| 6.5.7 | 15.5.6 |
+| 6.5.6 | 15.5.5 |
+| 6.5.5 | 15.5.4 |
+| 6.5.4 | 15.5.3 |
+| 6.5.3 | 15.5.3 |
+| 6.5.2 | 15.5.2 |
+| 6.5.1 | 15.5.1 |
+| 6.5.0 | 15.5.0 |
+| 6.4.6 | 15.4.6 |
+| 6.4.5 | 15.4.5 |
+| 6.4.4 | 15.4.4 |
+| 6.4.3 | 15.4.3 |
 | 6.4.2 | 15.4.2 |
 | 6.4.1 | 15.4.1 |
 | 6.4.0 | 15.4.0 |
+| 6.3.5 | 15.3.5 |
 | 6.3.4 | 15.3.4 |
 | 6.3.3 | 15.3.3 |
 | 6.3.2 | 15.3.2 |
@@ -461,7 +513,7 @@ gitlab/gitlab           1.4.2           11.6.3
 gitlab/gitlab           1.4.1           11.6.2
 ```
 
-Read more about our charts versioning [here](../development/release.md#chart-versioning)
+Read more about our charts versioning [here](../development/release.md#chart-versioning).
 
-Check the [releases documentation](../releases/index.md) for information on important releases,
+Check the [releases documentation](#release-notes-for-each-version) for information on important releases,
 and see the [changelog](https://gitlab.com/gitlab-org/charts/gitlab/blob/master/CHANGELOG.md) for the full details on any release.

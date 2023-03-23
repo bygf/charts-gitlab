@@ -178,12 +178,13 @@ Various cloud providers' LoadBalancer implementations have an impact on configur
 
 | Provider | Layer | Example snippet |
 | :-- | --: | :-- |
-| AWS | 4 | [aws/elb-layer4-loadbalancer](https://gitlab.com/gitlab-org/charts/gitlab/-/tree/master/examples/aws/elb-layer4-loadbalancer.yaml) |
-| AWS | 7 | [aws/elb-layer7-loadbalancer](https://gitlab.com/gitlab-org/charts/gitlab/-/tree/master/examples/aws/elb-layer7-loadbalancer.yaml) |
+| AWS | 4 | [`aws/elb-layer4-loadbalancer`](https://gitlab.com/gitlab-org/charts/gitlab/-/tree/master/examples/aws/elb-layer4-loadbalancer.yaml) |
+| AWS | 7 | [`aws/elb-layer7-loadbalancer`](https://gitlab.com/gitlab-org/charts/gitlab/-/tree/master/examples/aws/elb-layer7-loadbalancer.yaml) |
+| AWS | 7 | [`aws/alb-full`](https://gitlab.com/gitlab-org/charts/gitlab/-/tree/master/examples/aws/alb-full.yaml) |
 
 ### `global.ingress.configureCertmanager`
 
-Global setting that controls the automatic configuration of [cert-manager](https://artifacthub.io/packages/helm/jetstack/cert-manager)
+Global setting that controls the automatic configuration of [cert-manager](https://cert-manager.io/docs/installation/helm/)
 for Ingress objects. If `true`, relies on `certmanager-issuer.email` being set.
 
 If `false` and `global.ingress.tls.secretName` is not set, this will activate automatic
@@ -214,6 +215,16 @@ the `global.gitlabVersion` key:
 This impacts the default image tag used in the `webservice`, `sidekiq`, and `migration`
 charts. Note that the `gitaly`, `gitlab-shell` and `gitlab-runner` image tags should
 be separately updated to versions compatible with the GitLab version.
+
+## Adding suffix to all image tags
+
+If you wish to add a suffix to the name of all images used in the Helm chart, you can use the `global.image.tagSuffix` key.
+An example of this use case might be if you wish to use fips compliant container images from GitLab, which are all built
+with the `-fips` extension to the image tag.
+
+```shell
+--set global.image.tagSuffix="-fips"
+```
 
 ## Configure PostgreSQL settings
 
@@ -263,6 +274,7 @@ global:
 | `keepalivesCount`    | Integer   |                        | The number of TCP keepalives that can be lost before the client's connection to the server is considered dead. A value of zero uses the system default.                                        |
 | `tcpUserTimeout`     | Integer   |                        | The number of milliseconds that transmitted data may remain unacknowledged before a connection is forcibly closed. A value of zero uses the system default.                                    |
 | `applicationName`    | String    |                        | The name of the application connecting to the database. Set to a blank string (`""`) to disable. By default, this will be set to the name of the running process (e.g. `sidekiq`, `puma`).     |
+| `ci.enabled`         | Boolean   | Not defined            | Enables [two database connections](#configure-multiple-database-connections).                                                                                                                  |
 
 ### PostgreSQL per chart
 
@@ -358,6 +370,7 @@ global:
         # interval: 60
         # disconnect_timeout: 120
         # use_tcp: false
+        # max_replica_pools: 30
 ```
 
 Further tuning is also available, in regards to the
@@ -372,6 +385,28 @@ global:
       max_replication_difference: # See documentation
       max_replication_lag_time:   # See documentation
       replica_check_interval:     # See documentation
+```
+
+### Configure multiple database connections
+
+In GitLab 16.0, GitLab will default to using two database connections
+that point to the same PostgreSQL database.
+
+This feature can be enabled by adding a `ci.enabled` key. If you want to
+disable the feature, you need to remove this key.
+
+NOTE:
+The value of the key is not important: we will also configure two
+connection if the value is for example set to `false` or `foo` for example.
+This will be addressed by
+[issue 4264](https://gitlab.com/gitlab-org/charts/gitlab/-/issues/4264)
+which will ensure that the value is properly treated as a boolean.
+
+```yaml
+global:
+  psql:
+    ci:
+      enabled: true
 ```
 
 ## Configure Redis settings
@@ -405,6 +440,7 @@ global:
 | `host`             | String  |         | The hostname of the Redis server with the database to use. This can be omitted in lieu of `serviceName`. |
 | `serviceName`      | String  | `redis` | The name of the `service` which is operating the Redis database. If this is present, and `host` is not, the chart will template the hostname of the service (and current `.Release.Name`) in place of the `host` value. This is convenient when using Redis as a part of the overall GitLab chart. |
 | `port`             | Integer | `6379`  | The port on which to connect to the Redis server. |
+| `user`             | String  |         | The user used to authenticate against Redis (Redis 6.0+). |
 | `password.enabled` | Boolean    | true    | The `password.enabled` provides a toggle for using a password with the Redis instance. |
 | `password.key`     | String  |         | The `password.key` attribute for Redis defines the name of the key in the secret (below) that contains the password. |
 | `password.secret`  | String  |         | The `password.secret` attribute for Redis defines the name of the Kubernetes `Secret` to pull from. |
@@ -477,15 +513,16 @@ continue to apply with the Sentinel support unless re-specified in the table abo
 The GitLab chart includes support for running with separate Redis instances
 for different persistence classes, currently:
 
-| Instance       | Purpose                                                         |
-|:---------------|:----------------------------------------------------------------|
-| `cache`        | Store cached data                                               |
-| `queues`       | Store Sidekiq background jobs                                   |
-| `sharedState`  | Store various persistent data such as distributed locks         |
-| `actioncable`  | Pub/Sub queue backend for ActionCable                           |
-| `traceChunks`  | Store job traces temporarily                                    |
-| `rateLimiting` | Store rate-limiting usage for RackAttack and Application Limits |
-| `sessions`     | Store user session data                                         |
+| Instance          | Purpose                                                         |
+|:------------------|:----------------------------------------------------------------|
+| `cache`           | Store cached data                                               |
+| `queues`          | Store Sidekiq background jobs                                   |
+| `sharedState`     | Store various persistent data such as distributed locks         |
+| `actioncable`     | Pub/Sub queue backend for ActionCable                           |
+| `traceChunks`     | Store job traces temporarily                                    |
+| `rateLimiting`    | Store rate-limiting usage for RackAttack and Application Limits |
+| `sessions`        | Store user session data                                         |
+| `repositoryCache` | Store repository related data                                   |
 
 Any number of the instances may be specified. Any instances not specified
 will be handled by the primary Redis instance specified
@@ -552,6 +589,13 @@ global:
         enabled: true
         secret: sessions-secret
         key: sessions-password
+    repositoryCache:
+      host: repositoryCache.redis.example
+      port: 6379
+      password:
+        enabled: true
+        secret: repositoryCache-secret
+        key: repositoryCache-password
 ```
 
 The following table describes the attributes for each dictionary of the
@@ -573,16 +617,27 @@ configurations **are not shared** and needs to be specified for each
 instance that uses Sentinels. Please refer to the [Sentinel configuration](#redis-sentinel-support)
 for the attributes that are used to configure Sentinel servers.
 
-### Specifying secure Redis scheme (SSL)
+### Specify secure Redis scheme (SSL)
 
-In order to connect to Redis using SSL, the `rediss` (note the double `s`) scheme parameter is required:
+To connect to Redis with SSL:
 
-```yaml
-global:
-  redis:
-    scheme: rediss
-  --set global.redis.scheme=rediss
-```
+1. Update your configuration to use the `rediss` (double `s`) scheme parameter.
+1. In your configuration, set `authClients` to `false`:
+
+   ```yaml
+   global:
+     redis:
+       scheme: rediss
+   redis:
+     tls:
+       enabled: true
+       authClients: false
+   ```
+
+   This configuration is required because [Redis defaults to mutual TLS](https://redis.io/docs/management/security/encryption/#client-certificate-authentication), which not all chart components support.
+
+1. Follow Bitnami's [steps to enable TLS](https://docs.bitnami.com/kubernetes/infrastructure/redis/administration/enable-tls/). Make sure the chart components trust the certificate authority used to create Redis certificates.
+1. Optional. If you use a custom certificate authority, see the [Custom Certificate Authorities](#custom-certificate-authorities) global configuration.
 
 ### Password-less Redis Servers
 
@@ -840,7 +895,6 @@ global:
     enableSeatLink: true
     enableImpersonation: true
     applicationSettingsCacheSeconds: 60
-    defaultCanCreateGroup: true
     usernameChangingEnabled: true
     issueClosingPattern:
     defaultTheme:
@@ -908,6 +962,16 @@ global:
       connection: {}
     backups:
       bucket: gitlab-backups
+    microsoft_graph_mailer:
+      enabled: false
+      user_id: "YOUR-USER-ID"
+      tenant: "YOUR-TENANT-ID"
+      client_id: "YOUR-CLIENT-ID"
+      client_secret:
+        secret:
+        key: secret
+      azure_ad_endpoint: "https://login.microsoftonline.com"
+      graph_endpoint: "https://graph.microsoft.com"
     incomingEmail:
       enabled: false
       address: ""
@@ -978,7 +1042,6 @@ application are described below:
 | `enableSeatLink`                    | Boolean | `true`  | A flag to disable the [seat link support](https://docs.gitlab.com/ee/subscriptions/#seat-link). |
 | `enableImpersonation`               |         | `nil`   | A flag to disable [user impersonation by Administrators](https://docs.gitlab.com/ee/api/index.html#disable-impersonation). |
 | `applicationSettingsCacheSeconds`   | Integer | 60      | An interval value (in seconds) to invalidate the [application settings cache](https://docs.gitlab.com/ee/administration/application_settings_cache.html). |
-| `defaultCanCreateGroup`             | Boolean | `true`  | A flag to decide if users are allowed to create groups. |
 | `usernameChangingEnabled`           | Boolean | `true`  | A flag to decide if users are allowed to change their username. |
 | `issueClosingPattern`               | String  | (empty) | [Pattern to close issues automatically](https://docs.gitlab.com/ee/administration/issue_closing_pattern.html). |
 | `defaultTheme`                      | Integer |         | [Numeric ID of the default theme for the GitLab instance](https://gitlab.com/gitlab-org/gitlab-foss/blob/master/lib/gitlab/themes.rb#L17-27). It takes a number, denoting the ID of the theme. |
@@ -1228,7 +1291,7 @@ The incoming email settings are explained in the [command line options page](../
 
 #### Custom secret
 
-One can optionally customize the KAS `secret` name as well and `key`, either by
+One can optionally customize the KAS `secret` name as well as `key`, either by
 using Helm's `--set variable` option:
 
 ```shell
@@ -1290,6 +1353,68 @@ global:
       externalUrl: "wss://custom-kas-url.example.com"
       internalUrl: "grpc://custom-internal-url"
 ```
+
+#### TLS settings
+
+KAS supports TLS communication between its `kas` pods and other GitLab chart components.
+
+Prerequisites:
+
+- Use [GitLab 15.5.1 or later](https://gitlab.com/gitlab-org/gitlab/-/merge_requests/101571#note_1146419137).
+  You can set your GitLab version with `global.gitlabVersion: <version>`. If you need to force an image update
+  after an initial deployment, also set `global.image.pullPolicy: Always`.
+- [Create the certificate authority](../advanced/internal-tls/index.md) and certificates that your `kas` pods will trust.
+
+To configure `kas` to use the certificates you created, set the following values.
+
+| Value                                    | Description                                                                      |
+|------------------------------------------|----------------------------------------------------------------------------------|
+| `global.kas.tls.enabled`                 | Mounts the certificates volume and enables TLS communication to `kas` endpoints. |
+| `global.kas.tls.secretName`    | Specifies which Kubernetes TLS secret stores your certificates.                  |
+| `global.kas.tls.caSecretName`    | Specifies which Kubernetes TLS secret stores your custom CA.                     |
+
+For example, you could use the following in your `values.yaml` file to deploy your chart:
+
+```yaml
+.internal-ca: &internal-ca gitlab-internal-tls-ca # The secret name you used to share your TLS CA.
+.internal-tls: &internal-tls gitlab-internal-tls # The secret name you used to share your TLS certificate.
+
+global:
+  certificates:
+    customCAs:
+    - secret: *internal-ca
+  hosts:
+    domain: gitlab.example.com # Your gitlab domain 
+  kas:
+    tls:
+      enabled: true
+      secretName: *internal-tls
+      caSecretName: *internal-ca
+```
+
+### Suggested Reviewers settings
+
+#### Custom secret
+
+One can optionally customize the Suggested Reviewers `secret` name as well as
+`key`, either by using Helm's `--set variable` option:
+
+```shell
+--set global.appConfig.suggested_reviewers.secret=custom-secret-name \
+--set global.appConfig.suggested_reviewers.key=custom-secret-key \
+```
+
+or by configuring your `values.yaml`:
+
+```yaml
+global:
+  appConfig:
+    suggested_reviewers:
+      secret: "custom-secret-name"
+      key: "custom-secret-key"
+```
+
+If you'd like to customize the secret value, refer to the [secrets documentation](../installation/secrets.md#gitlab-suggested-reviewers-secret).
 
 ### LDAP
 
@@ -1353,10 +1478,10 @@ If the LDAP server uses a custom CA or self-signed certificate, you must:
 
    ```shell
    # Secret
-   kubectl -n gitlab create secret generic my-custom-ca-secret --from-file=unique_name=my-custom-ca.pem
+   kubectl -n gitlab create secret generic my-custom-ca-secret --from-file=unique_name.crt=my-custom-ca.pem
 
    # ConfigMap
-   kubectl -n gitlab create configmap my-custom-ca-configmap --from-file=unique_name=my-custom-ca.pem
+   kubectl -n gitlab create configmap my-custom-ca-configmap --from-file=unique_name.crt=my-custom-ca.pem
    ```
 
 1. Then, specify:
@@ -1458,6 +1583,17 @@ args:
   name_identifier_format: 'urn:oasis:names:tc:SAML:2.0:nameid-format:transient'
 ```
 
+Microsoft Azure OAuth 2.0 OmniAuth provider configuration example:
+
+```yaml
+name: azure_activedirectory_v2
+label: Azure
+args:
+  client_id: '<CLIENT_ID>'
+  client_secret: '<CLIENT_SECRET>'
+  tenant_id: '<TENANT_ID>'
+```
+
 [Group SAML](https://docs.gitlab.com/ee/integration/saml.html#configuring-group-saml-on-a-self-managed-gitlab-instance) configuration example:
 
 ```yaml
@@ -1477,6 +1613,7 @@ shown below:
 omniauth:
   providers:
     - secret: gitlab-google-oauth2
+    - secret: azure_activedirectory_v2
     - secret: gitlab-azure-oauth2
     - secret: gitlab-cas3
 ```
@@ -1489,32 +1626,6 @@ Example configuration `--set` items, when using the global chart:
 
 Due to the complexity of using `--set` arguments, a user may wish to use a YAML snippet,
 passed to `helm` with `-f omniauth.yaml`.
-
-#### connection
-
-Details of the Kubernetes secret that contains the connection information for the
-object storage provider. The contents of this secret should be a YAML formatted file.
-
-Defaults to `{}` and will be ignored if `global.minio.enabled` is `true`.
-
-This property has two sub-keys: `secret` and `key`:
-
-- `secret` is the name of a Kubernetes Secret. This value is required to use external object storage.
-- `key` is the name of the key in the secret which houses the YAML block. Defaults to `connection`.
-
-Examples for [AWS (s3)](https://fog.io/storage/#using-amazon-s3-and-fog) and [Google (GCS)](https://fog.io/storage/#google-cloud-storage)
-providers can be found in [`examples/objectstorage`](https://gitlab.com/gitlab-org/charts/gitlab/tree/master/examples/objectstorage):
-
-- [`rails.s3.yaml`](https://gitlab.com/gitlab-org/charts/gitlab/tree/master/examples/objectstorage/rails.s3.yaml)
-- [`rails.gcs.yaml`](https://gitlab.com/gitlab-org/charts/gitlab/tree/master/examples/objectstorage/rails.gcs.yaml)
-
-Once a YAML file containing the contents of the `connection` has been created, create
-the secret in Kubernetes:
-
-```shell
-kubectl create secret generic gitlab-rails-storage \
-    --from-file=connection=rails.yaml
-```
 
 ### Cron jobs related settings
 
@@ -1614,7 +1725,7 @@ corresponding queue:
 
 - The query is following the
   [worker matching query](https://docs.gitlab.com/ee/administration/operations/extra_sidekiq_processes.html#queue-selector) syntax.
-- The `<queue_name>` must be a valid Sidekiq queue name. If the queue name
+- The `<queue_name>` must match a valid Sidekiq queue name `sidekiq.pods[].queues` defined under [`sidekiq.pods`](gitlab/sidekiq/index.md#per-pod-settings). If the queue name
   is `nil`, or an empty string, the worker is routed to the queue generated
   by the name of the worker instead.
 
@@ -1627,7 +1738,7 @@ global:
   appConfig:
     sidekiq:
       routingRules:
-      - ["resource_boundary=cpu", "cpu_boundary"]
+      - ["resource_boundary=cpu", "cpu-boundary"]
       - ["feature_category=pages", null]
       - ["feature_category=search", "search"]
       - ["feature_category=memory|resource_boundary=memory", "memory-bound"]
@@ -1820,10 +1931,10 @@ To create a Secret or ConfigMap:
 
 ```shell
 # Create a Secret from a certificate file
-kubectl create secret generic secret-custom-ca --from-file=unique_name=/path/to/cert
+kubectl create secret generic secret-custom-ca --from-file=unique_name.crt=/path/to/cert
 
 # Create a ConfigMap from a certificate file
-kubectl create configmap cm-custom-ca --from-file=unique_name=/path/to/cert
+kubectl create configmap cm-custom-ca --from-file=unique_name.crt=/path/to/cert
 ```
 
 To configure a Secret or ConfigMap, or both, specify them in globals:
@@ -1835,13 +1946,23 @@ global:
       - secret: secret-custom-CAs           # Mount all keys of a Secret
       - secret: secret-custom-CAs           # Mount only the specified keys of a Secret
         keys:
-          - unique_name
+          - unique_name.crt
       - configMap: cm-custom-CAs            # Mount all keys of a ConfigMap
       - configMap: cm-custom-CAs            # Mount only the specified keys of a ConfigMap
         keys:
-          - unique_name_1
-          - unique_name_2
+          - unique_name_1.crt
+          - unique_name_2.crt
 ```
+
+NOTE:
+The `.crt` extension in the Secret's key name is important for the
+[Debian update-ca-certificates package](https://manpages.debian.org/bullseye/ca-certificates/update-ca-certificates.8.en.html).
+This step ensures that the custom CA file is mounted with that extension and is processed
+in the Certificates initContainers.
+Previously, when the certificates helper image was Alpine-based, the file extension was not actually required
+even though the [documentation](https://gitlab.alpinelinux.org/alpine/ca-certificates/-/blob/master/update-ca-certificates.8)
+says that it is.
+The UBI-based `update-ca-trust` utility does not seem to have the same requirement.
 
 You can provide any number of Secrets or ConfigMaps, each containing any number of keys that hold
 PEM-encoded CA certificates. These are configured as entries under `global.certificates.customCAs`.
@@ -2183,7 +2304,7 @@ The `global.appConfig.kerberos.simpleLdapLinkingAllowedRealms` can be used to sp
 
 ## Outgoing email
 
-Outgoing email configuration is available via `global.smtp.*` and `global.email.*`.
+Outgoing email configuration is available via `global.smtp.*`, `global.appConfig.microsoft_graph_mailer.*` and `global.email.*`.
 
 ```yaml
 global:
@@ -2200,10 +2321,21 @@ global:
     password:
       secret: 'smtp-password'
       key: 'password'
+  appConfig:
+    microsoft_graph_mailer:
+      enabled: false
+      user_id: "YOUR-USER-ID"
+      tenant: "YOUR-TENANT-ID"
+      client_id: "YOUR-CLIENT-ID"
+      client_secret:
+        secret:
+        key: secret
+      azure_ad_endpoint: "https://login.microsoftonline.com"
+      graph_endpoint: "https://graph.microsoft.com"
 ```
 
 More information on the available configuration options is available in the
-[outgoing email documentation](../installation/command-line-options.md#outgoing-email-configuration)
+[outgoing email documentation](../installation/command-line-options.md#outgoing-email-configuration).
 
 More detailed examples can be found in the
 [Omnibus SMTP settings documentation](https://docs.gitlab.com/omnibus/settings/smtp.html).
@@ -2240,3 +2372,17 @@ global:
   - `topology.kubernetes.io/region`
 
 Kubernetes references on [Inter-pod affinity and anti-affinity](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#inter-pod-affinity-and-anti-affinity)
+
+## Pod Priority and Preemption
+
+Pod priorities can be configured either via `global.priorityClassName` or per sub-chart via `priorityClassName`.
+Setting pod priority allows you to tell the scheduler to evict lower priority pods to make scheduling of pendings pods possible.
+
+```yaml
+global:
+  priorityClassName: system-cluster-critical
+```
+
+| Name                | Type   | Default | Description                      |
+| :-------------------| :--:   | :------ | :------------------------------- |
+| `priorityClassName` | String |         | Priority class assigned to pods. |

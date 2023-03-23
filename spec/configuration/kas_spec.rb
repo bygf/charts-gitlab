@@ -6,10 +6,7 @@ require 'yaml'
 
 describe 'kas configuration' do
   let(:default_values) do
-    YAML.safe_load(%(
-      certmanager-issuer:
-        email: test@example.com
-    ))
+    HelmTemplate.defaults
   end
 
   let(:custom_secret_key) { 'kas_custom_secret_key' }
@@ -168,6 +165,89 @@ describe 'kas configuration' do
 
       it 'uses the default configuration' do
         expect(config_yaml_data['gitlab']).not_to be_nil
+      end
+
+      it 'sets the external url for GitLab' do
+        expect(config_yaml_data['gitlab']['external_url']).to eq('https://gitlab.example.com')
+      end
+
+      describe 'tls config' do
+        shared_context 'privateApi with tls' do
+          it 'configures the privateApi with certificate files' do
+            expected_config = {
+              "listen" => {
+                "address" => :"8155",
+                "authentication_secret_file" => "/etc/kas/.gitlab_kas_private_api_secret",
+                "ca_certificate_file" => "/etc/ssl/certs/ca-certificates.crt",
+                "certificate_file" => "/etc/kas/tls.crt",
+                "key_file" => "/etc/kas/tls.key"
+              }
+            }
+
+            expect(config_yaml_data['private_api']).to eq(expected_config)
+          end
+        end
+
+        context 'when global.kas.tls is enabled' do
+          let(:kas_values) do
+            default_kas_values.deep_merge!(YAML.safe_load(%(
+                global:
+                  kas:
+                    tls:
+                      enabled: true
+              )))
+          end
+
+          it 'configures agent servers with certificate files' do
+            expected_config = {
+              "listen" => {
+                "address" => :"8150",
+                "websocket" => true,
+                "certificate_file" => "/etc/kas/tls.crt",
+                "key_file" => "/etc/kas/tls.key"
+              },
+              "kubernetes_api" => {
+                "listen" => {
+                  "address" => :"8154",
+                  "certificate_file" => "/etc/kas/tls.crt",
+                  "key_file" => "/etc/kas/tls.key"
+                },
+                "url_path_prefix" => "/k8s-proxy"
+              }
+            }
+
+            expect(config_yaml_data['agent']).to eq(expected_config)
+          end
+
+          it 'configures the server for GitLab requests with certificate files' do
+            expected_config = {
+              "listen" => {
+                "address" => :"8153",
+                "authentication_secret_file" => "/etc/kas/.gitlab_kas_secret",
+                "certificate_file" => "/etc/kas/tls.crt",
+                "key_file" => "/etc/kas/tls.key"
+              }
+            }
+
+            expect(config_yaml_data['api']).to eq(expected_config)
+          end
+
+          it_behaves_like 'privateApi with tls'
+        end
+
+        context 'when privateApi.tls is enabled' do
+          let(:kas_values) do
+            default_kas_values.deep_merge!(YAML.safe_load(%(
+                gitlab:
+                  kas:
+                    privateApi:
+                      tls:
+                        enabled: true
+              )))
+          end
+
+          it_behaves_like 'privateApi with tls'
+        end
       end
 
       context 'when customConfig is given' do
@@ -353,12 +433,50 @@ describe 'kas configuration' do
           end
         end
       end
+
+      context 'when observability.port is given' do
+        let(:kas_values) do
+          default_kas_values.deep_merge!(YAML.safe_load(%(
+            gitlab:
+              kas:
+                observability:
+                  port: 4242
+          )))
+        end
+
+        it 'sets the correct observability address' do
+          expect(config_yaml_data['observability']['listen']['address']).to eq(:"4242")
+        end
+      end
+
+      context 'when observability probe endpoints are given' do
+        let(:kas_values) do
+          default_kas_values.deep_merge!(YAML.safe_load(%(
+            gitlab:
+              kas:
+                observability:
+                  livenessProbe:
+                    path: '/lP'
+                  readinessProbe:
+                    path: '/rP'
+          )))
+        end
+
+        it 'sets the correct observability url paths' do
+          expect(config_yaml_data['observability']['liveness_probe']).to include(YAML.safe_load(%(
+            url_path: '/lP'
+          )))
+          expect(config_yaml_data['observability']['readiness_probe']).to include(YAML.safe_load(%(
+            url_path: '/rP'
+          )))
+        end
+      end
     end
 
     describe 'templates/service.yaml' do
-      context 'when type is LoadBalancer' do
-        subject(:service) { kas_enabled_template.resources_by_kind('Service')['Service/test-kas'] }
+      subject(:service) { kas_enabled_template.resources_by_kind('Service')['Service/test-kas'] }
 
+      context 'when type is LoadBalancer' do
         let(:service_values) { {} }
 
         let(:kas_values) do
@@ -395,15 +513,48 @@ describe 'kas configuration' do
           end
         end
       end
+
+      context 'when metrics.enabled is given' do
+        let(:metrics_enabled) { true }
+        let(:kas_values) do
+          default_kas_values.deep_merge!(
+            'gitlab' => {
+              'kas' => {
+                'metrics' => {
+                  'enabled' => metrics_enabled
+                }
+              }
+            }
+          )
+        end
+
+        context 'when metrics.enabled is true' do
+          let(:metrics_enabled) { true }
+
+          it 'exports metrics port' do
+            expect(service['spec']['ports']).to include(include("name" => "http-metrics"))
+          end
+        end
+
+        context 'when metrics.enabled is false' do
+          let(:metrics_enabled) { false }
+
+          it 'exports no metrics port' do
+            expect(service['spec']['ports']).not_to include(include("name" => "http-metrics"))
+          end
+        end
+      end
     end
 
     describe 'templates/deployment.yaml' do
       subject(:deployment) { kas_enabled_template.resources_by_kind('Deployment')['Deployment/test-kas'] }
 
+      let(:global_values) { {} }
       let(:deployment_values) { {} }
 
       let(:kas_values) do
         default_kas_values.deep_merge!(
+          **global_values,
           'gitlab' => {
             'kas' => {
               'deployment' => {}.merge!(deployment_values)
@@ -416,11 +567,200 @@ describe 'kas configuration' do
         expect(deployment['spec']).not_to have_key('minReadySeconds')
       end
 
+      context 'env' do
+        let(:env) { deployment['spec']['template']['spec']['containers'].first['env'] }
+
+        it 'sets OWN_PRIVATE_API_URL to use grpc' do
+          expect(env).to include(
+            { "name" => "OWN_PRIVATE_API_URL", "value" => "grpc://$(POD_IP):8155" }
+          )
+        end
+
+        it 'sets OWN_PRIVATE_API_HOST to use its service host' do
+          expect(env).to include(
+            { "name" => "OWN_PRIVATE_API_HOST", "value" => "test-kas.default.svc" }
+          )
+        end
+
+        context 'extraEnv is set' do
+          let(:global_values) do
+            YAML.safe_load(%(
+              global:
+                extraEnv:
+                  EXTRA_ENV_VAR_A: global-a
+                  EXTRA_ENV_VAR_B: global-b
+            ))
+          end
+
+          it 'inherits global values' do
+            expect(env).to include(
+              { 'name' => 'EXTRA_ENV_VAR_A', 'value' => 'global-a' },
+              { 'name' => 'EXTRA_ENV_VAR_B', 'value' => 'global-b' }
+            )
+          end
+        end
+
+        context 'extraEnvFrom is set' do
+          let(:global_values) do
+            YAML.safe_load(%(
+              global:
+                extraEnvFrom:
+                  EXTRA_ENV_VAR_C:
+                    secretKeyRef:
+                      key: "keyC"
+                      name: "nameC"
+                  EXTRA_ENV_VAR_D:
+                    secretKeyRef:
+                      key: "keyD"
+                      name: "nameD"
+            ))
+          end
+
+          it 'inherites global values' do
+            expect(env).to include(
+              { 'name' => 'EXTRA_ENV_VAR_C', 'valueFrom' => { "secretKeyRef" => { "name" => "nameC", "key" => "keyC" } } },
+              { 'name' => 'EXTRA_ENV_VAR_D', 'valueFrom' => { "secretKeyRef" => { "name" => "nameD", "key" => "keyD" } } }
+            )
+          end
+        end
+      end
+
       context 'when deployment.minReadySeconds is given' do
         let(:deployment_values) { { 'minReadySeconds' => 60 } }
 
         it 'contains the minReadySeconds customization' do
           expect(deployment['spec']).to include('minReadySeconds' => 60)
+        end
+      end
+
+      describe 'tls' do
+        shared_context 'a deployment with tls' do
+          it 'sets OWN_PRIVATE_API_URL to use grpcs' do
+            expect(deployment['spec']['template']['spec']['containers'].first['env']).to include(
+              { "name" => "OWN_PRIVATE_API_URL", "value" => "grpcs://$(POD_IP):8155" }
+            )
+          end
+
+          it 'creates the TLS secret volume' do
+            init_etc_kas_volume = deployment['spec']['template']['spec']['volumes'].find do |volume|
+              volume['name'] == 'init-etc-kas'
+            end
+
+            expect(init_etc_kas_volume['projected']['sources']).to include(
+              {
+                "secret" => {
+                  "name" => "example-tls",
+                  "items" => [
+                    { "key" => "tls.crt", "path" => "tls.crt" },
+                    { "key" => "tls.key", "path" => "tls.key" }
+                  ]
+                }
+              }
+            )
+          end
+        end
+
+        context 'when privateApi.tls is enabled' do
+          let(:kas_values) do
+            default_kas_values.deep_merge!(YAML.safe_load(%(
+                gitlab:
+                  kas:
+                    privateApi:
+                      tls:
+                        enabled: true
+                        secretName: example-tls
+              )))
+          end
+
+          it_behaves_like 'a deployment with tls'
+        end
+
+        context 'when global.kas.tls is enabled' do
+          let(:kas_values) do
+            default_kas_values.deep_merge!(YAML.safe_load(%(
+                global:
+                  kas:
+                    tls:
+                      enabled: true
+                      secretName: example-tls
+              )))
+          end
+
+          it_behaves_like 'a deployment with tls'
+        end
+      end
+
+      context 'when metrics.enabled is given' do
+        let(:metrics_enabled) { true }
+        let(:service_monitor_enabled) { false }
+
+        let(:kas_values) do
+          default_kas_values.deep_merge!(
+            'gitlab' => {
+              'kas' => {
+                'metrics' => {
+                  'enabled' => metrics_enabled,
+                  'serviceMonitor' => {
+                    'enabled' => service_monitor_enabled
+                  }
+                }
+              }
+            }
+          )
+        end
+
+        context 'when metrics.enabled is true' do
+          let(:metrics_enabled) { true }
+
+          context 'when metrics.serviceMonitor.enabled is true' do
+            let(:service_monitor_enabled) { true }
+
+            it 'does not set prometheus annotations' do
+              expect(deployment['spec']['template']['metadata']['annotations'].keys).not_to include(include("prometheus"))
+            end
+          end
+
+          context 'when metrics.serviceMonitor.enabled is false' do
+            let(:service_monitor_enabled) { false }
+
+            it 'does set prometheus annotations' do
+              expect(deployment['spec']['template']['metadata']['annotations'].keys).to include(include("prometheus"))
+            end
+          end
+        end
+
+        context 'when metrics.enabled is false' do
+          let(:metrics_enabled) { true }
+
+          context 'when metrics.serviceMonitor.enabled is true' do
+            let(:service_monitor_enabled) { true }
+
+            it 'does not set prometheus annotations' do
+              expect(deployment['spec']['template']['metadata']['annotations'].keys).not_to include(include("prometheus"))
+            end
+          end
+        end
+      end
+
+      context 'when observability probe endpoints are given' do
+        let(:kas_values) do
+          default_kas_values.deep_merge!(YAML.safe_load(%(
+            gitlab:
+              kas:
+                observability:
+                  livenessProbe:
+                    path: '/lP'
+                  readinessProbe:
+                    path: '/rP'
+          )))
+        end
+
+        it 'configures livenessProbe' do
+          expect(deployment['spec']['template']['spec']['containers'].first['livenessProbe']['httpGet']).to eq({ "path" => "/lP", "port" => 8151 })
+        end
+
+        it 'configures readinessProbe' do
+          expect(deployment['spec']['template']['spec']['containers'].first['readinessProbe']['httpGet']).to eq({ "path" => "/rP", "port" => 8151 })
         end
       end
     end

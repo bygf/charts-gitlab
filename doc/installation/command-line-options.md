@@ -79,6 +79,19 @@ helm inspect values gitlab/gitlab
 | `global.smtp.user_name`           | Username for SMTP authentication https                                                  | ""                    |
 | `global.smtp.pool`                | Enables SMTP connection pooling                                                         | false                 |
 
+### Microsoft Graph Mailer settings
+
+| Parameter                         | Description                                                                             | Default               |
+|-----------------------------------|-----------------------------------------------------------------------------------------|-----------------------|
+| `global.appConfig.microsoft_graph_mailer.enabled` | Enable outgoing email via Microsoft Graph API                                     | false                 |
+| `global.appConfig.microsoft_graph_mailer.user_id` | The unique identifier for the user that uses the Microsoft Graph API  | ""                    |
+| `global.appConfig.microsoft_graph_mailer.tenant` | The directory tenant the application plans to operate against, in GUID or domain-name format | ""          |
+| `global.appConfig.microsoft_graph_mailer.client_id` | The application ID that's assigned to your app. You can find this information in the portal where you registered your app | "" |
+| `global.appConfig.microsoft_graph_mailer.client_secret.key` | Key in `global.appConfig.microsoft_graph_mailer.client_secret.secret` that contains the client secret that you generated for your app in the app registration portal | `secret` |
+| `global.appConfig.microsoft_graph_mailer.client_secret.secret` | Name of a `Secret` containing the client secret that you generated for your app in the app registration portal | "" |
+| `global.appConfig.microsoft_graph_mailer.azure_ad_endpoint` | The URL of the Azure Active Directory endpoint | `https://login.microsoftonline.com`            |
+| `global.appConfig.microsoft_graph_mailer.graph_endpoint` | The URL of the Microsoft Graph endpoint | `https://graph.microsoft.com`                            |
+
 ## Incoming Email configuration
 
 ### Common settings
@@ -87,7 +100,8 @@ helm inspect values gitlab/gitlab
 |---------------------------------------------------|--------------------------------------------------------------------------------------------------------|------------------------------------------------------------|
 | `global.appConfig.incomingEmail.address`          | The email address to reference the item being replied to (example: `gitlab-incoming+%{key}@gmail.com`) | empty                                                      |
 | `global.appConfig.incomingEmail.enabled`          | Enable incoming email                                                                                  | false                                                      |
-| `global.appConfig.incomingEmail.expungeDeleted`   | Whether to expunge (permanently remove) messages from the mailbox when they are deleted after delivery | false                                                      |
+| `global.appConfig.incomingEmail.deleteAfterDelivery` | Whether to mark messages as deleted. For IMAP, messages that are marked as deleted are expunged if `expungedDeleted` is set to `true`. For Microsoft Graph, set this to false to retain messages in the inbox because deleted messages are auto-expunged after some time. | true |
+| `global.appConfig.incomingEmail.expungeDeleted`   | Whether to expunge (permanently remove) messages from the mailbox when they are marked as deleted after delivery. Only relevant to IMAP because Microsoft Graph will auto-expunge deleted messages. | false |
 | `global.appConfig.incomingEmail.logger.logPath`   | Path to write JSON structured logs to; set to "" to disable this logging                               | `/dev/stdout`                                              |
 | `global.appConfig.incomingEmail.inboxMethod`      | Read mail with IMAP (`imap`) or Microsoft Graph API with OAuth2 (`microsoft_graph`)                    | `imap`                                                     |
 | `global.appConfig.incomingEmail.deliveryMethod`   | How mailroom can send an email content to Rails app for processing. Either `sidekiq` or `webhook`      | `webhook`                                                  |
@@ -136,7 +150,8 @@ must be `+%{key}`.
 |------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------|
 | `global.appConfig.serviceDeskEmail.address`          | The email address to reference the item being replied to (example: `project_contact+%{key}@gmail.com`)                 | empty                                                          |
 | `global.appConfig.serviceDeskEmail.enabled`          | Enable Service Desk email                                                                                              | false                                                          |
-| `global.appConfig.serviceDeskEmail.expungeDeleted`   | Whether to expunge (permanently remove) messages from the mailbox when they are marked as deleted after delivery       | false                                                          |
+| `global.appConfig.serviceDeskEmail.deleteAfterDelivery` | Whether to mark messages as deleted. For IMAP, messages that are marked as deleted are expunged if `expungedDeleted` is set to `true`. For Microsoft Graph, set this to false to retain messages in the inbox because deleted messages are auto-expunged after some time. | true |
+| `global.appConfig.serviceDeskEmail.expungeDeleted`   | Whether to expunge (permanently remove) messages from the mailbox when they are marked as deleted after delivery. Only relevant to IMAP because Microsoft Graph auto-expunges deleted messages. | false |
 | `global.appConfig.serviceDeskEmail.logger.logPath`   | Path to write JSON structured logs to; set to "" to disable this logging                                               | `/dev/stdout`                                                  |
 | `global.appConfig.serviceDeskEmail.inboxMethod`      | Read mail with IMAP (`imap`) or Microsoft Graph API with OAuth2 (`microsoft_graph`)                                    | `imap`                                                         |
 | `global.appConfig.serviceDeskEmail.deliveryMethod`   | How mailroom can send an email content to Rails app for processing. Either `sidekiq` or `webhook`                      | `webhook`                                                      |
@@ -339,7 +354,7 @@ settings from the [Redis chart](https://github.com/bitnami/charts/tree/master/bi
 | `gitlab.migrations.psql.port` | Set PostgreSQL server port. Takes precedence over `global.psql.port` |  |
 | `gitlab.migrations.securityContext.fsGroup` | Group ID under which the pod should be started | `1000` |
 | `gitlab.migrations.securityContext.runAsUser` | User ID under which the pod should be started | `1000` |
-| `gitlab.sidekiq.concurrency` | Sidekiq default concurrency | `10` |
+| `gitlab.sidekiq.concurrency` | Sidekiq default concurrency | `20` |
 | `gitlab.sidekiq.enabled` | Sidekiq enabled flag | true |
 | `gitlab.sidekiq.gitaly.authToken.key` | key to Gitaly token in Gitaly secret | `token` |
 | `gitlab.sidekiq.gitaly.authToken.secret` | Gitaly secret | `{.Release.Name}-gitaly-secret` |
@@ -370,7 +385,7 @@ settings from the [Redis chart](https://github.com/bitnami/charts/tree/master/bi
 | `gitlab.toolbox.backups.cron.resources.requests.cpu` | Backup cron minimum needed CPU | `50m` |
 | `gitlab.toolbox.backups.cron.resources.requests.memory` | Backup cron minimum needed memory | `350M` |
 | `gitlab.toolbox.backups.cron.schedule` | Cron style schedule string | `0 1 * * *` |
-| `gitlab.toolbox.backups.objectStorage.backend` | Object storage provider to use (`s3` or `gcs`) | `s3` |
+| `gitlab.toolbox.backups.objectStorage.backend` | Object storage provider to use (`s3`, `gcs`, or `azure`) | `s3` |
 | `gitlab.toolbox.backups.objectStorage.config.gcpProject` | GCP Project to use when backend is `gcs` | "" |
 | `gitlab.toolbox.backups.objectStorage.config.key` | key containing credentials in secret | "" |
 | `gitlab.toolbox.backups.objectStorage.config.secret` | Object storage credentials secret | "" |
@@ -443,7 +458,7 @@ Ensure that any properties you wish to configure are provided as `chart-name.pro
 ## Prometheus
 
 Prefix Prometheus values with `prometheus`. For example, set the persistence
-storage value using `prometheus.server.persistentVolume.size`.
+storage value using `prometheus.server.persistentVolume.size`. To disable Prometheus set `prometheus.install=false`.
 
 Refer to the [Prometheus chart documentation](https://github.com/prometheus-community/helm-charts/tree/main/charts/prometheus)
 for the exhaustive list of configuration options.

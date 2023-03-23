@@ -48,6 +48,7 @@ to the `helm install` command using the `--set` flags.
 | `image.tag`                               |                                                            | image tag                                                                                                                                                                  |
 | `init.image.repository`                   |                                                            | initContainer image                                                                                                                                                        |
 | `init.image.tag`                          |                                                            | initContainer image tag                                                                                                                                                    |
+| `init.containerSecurityContext`           |                                                            | initContainer container specific [securityContext](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#securitycontext-v1-core)                                                                                                                                                         |
 | `metrics.enabled`                         | `true`                                                     | If a metrics endpoint should be made available for scraping                                                                                                                |
 | `metrics.port`                            | `9168`                                                     | Metrics endpoint port                                                                                                                                                      |
 | `metrics.path`                            | `/metrics`                                                 | Metrics endpoint path                                                                                                                                                      |
@@ -55,6 +56,7 @@ to the `helm install` command using the `--set` flags.
 | `metrics.serviceMonitor.additionalLabels` | `{}`                                                       | Additional labels to add to the ServiceMonitor                                                                                                                             |
 | `metrics.serviceMonitor.endpointConfig`   | `{}`                                                       | Additional endpoint configuration for the ServiceMonitor                                                                                                                   |
 | `metrics.annotations`                     |                                                            | **DEPRECATED** Set explicit metrics annotations. Replaced by template content.                                                                                             |
+| `priorityClassName`                       |                                                            | [Priority class](https://kubernetes.io/docs/concepts/scheduling-eviction/pod-priority-preemption/) assigned to pods.                                                       |
 | `resources.requests.cpu`                  | `75m`                                                      | GitLab Exporter minimum CPU                                                                                                                                                |
 | `resources.requests.memory`               | `100M`                                                     | GitLab Exporter minimum memory                                                                                                                                             |
 | `serviceLabels`                           | `{}`                                                       | Supplemental service labels                                                                                                                                                |
@@ -64,12 +66,15 @@ to the `helm install` command using the `--set` flags.
 | `service.type`                            | `ClusterIP`                                                | GitLab Exporter service type                                                                                                                                               |
 | `securityContext.fsGroup`                 | `1000`                                                     | Group ID under which the pod should be started                                                                                                                             |
 | `securityContext.runAsUser`               | `1000`                                                     | User ID under which the pod should be started                                                                                                                              |
+| `securityContext.fsGroupChangePolicy`     |                                                            | Policy for changing ownership and permission of the volume (requires Kubernetes 1.23)                                                                                      |
+| `containerSecurityContext`                |                                                            | Override container [securityContext](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#securitycontext-v1-core) under which the container is started                                                                                                                                  |
+| `containerSecurityContext.runAsUser`      | `1000`                                                     | Allow to overwrite the specific security context under which the container is started                                                                                                                                  |
 | `tolerations`                             | `[]`                                                       | Toleration labels for pod assignment                                                                                                                                       |
 | `psql.port`                               |                                                            | Set PostgreSQL server port. Takes precedence over `global.psql.port`                                                                                                       |
+| `tls.enabled`                             | `false`                                                    | GitLab Exporter TLS enabled                                                                                                                                                |
+| `tls.secretName`                          | `{Release.Name}-gitlab-exporter-tls`                       | GitLab Exporter TLS secret. Must point to a [Kubernetes TLS secret](https://kubernetes.io/docs/concepts/configuration/secret/#tls-secrets).                                |
 
 ## Chart configuration examples
-
-### image.pullSecrets
 
 ### extraEnv
 
@@ -117,6 +122,8 @@ extraEnvFrom:
       key: some-string
       # optional: boolean
 ```
+
+### image.pullSecrets
 
 `pullSecrets` allows you to authenticate to a private registry to pull images for a pod.
 
