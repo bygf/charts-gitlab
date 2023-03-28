@@ -60,13 +60,36 @@ We use secrets to store sensitive information like passwords and share them amon
 
 The common fields we use them in are:
 
-- **Certificates** - TLS certificates for the registry etc.
+- **Certificates** - certificates for the registry etc.
 - **Passwords** - Sharing the Redis password.
 - **Auth Tokens** - Sharing the inter-service auth tokens
 
 ### Certificates
 
-For example, where `registry` was the owning chart, and the other charts need to reference the `registry` certificate.
+Certificates are defined and shared based on their type and content.
+
+### TLS/SSL Certificates
+
+A TLS/SSL certificate is expected to be a valid [Kubernetes TLS Secret](https://kubernetes.io/docs/concepts/configuration/secret/#tls-secrets).
+
+```yaml
+registry:
+  tls:
+    secretName: <TLS secret name>
+```
+
+When a TLS certificate is shared between charts, it should be defined as [Global Value](https://helm.sh/docs/chart_template_guide/subcharts_and_globals/#global-chart-values).
+
+```yaml
+global:
+  ingress:
+    tls:
+      secretName: <TLS secret name>
+```
+
+### Other Certificates
+
+For example, where `registry` was the owning chart, and the other charts need to reference the `registry` JWT signing certificate.
 
 The owning chart should define its certificate secret like the following:
 
