@@ -187,7 +187,7 @@ SOME_OTHER_KEY=some_other_value
 ### extraEnvFrom
 
 `extraEnvFrom` allows you to expose additional environment variables from other data sources in all containers in the pods.
-You can override them for each [deployment](#deployments-settings).
+Subsequently variables can be overridden per [deployment](#deployments-settings).
 
 Below is an example use of `extraEnvFrom`:
 

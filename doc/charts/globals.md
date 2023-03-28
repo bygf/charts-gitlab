@@ -2177,7 +2177,7 @@ global:
 
 ## extraEnvFrom
 
-`extraEnvFrom` allows you to expose additional environment variables from other data sources in all
+`extraEnvFrom` allows to expose additional environment variables from other data sources in all
 containers in the pods. Extra environment variables can be set up at `global` level (`global.extraEnvFrom`)
 and on a sub-chart level (`<subchart_name>.extraEnvFrom`).
 

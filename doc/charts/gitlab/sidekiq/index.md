@@ -176,7 +176,7 @@ pod. Pod-level `extraEnv` settings are not added to [init containers](https://ku
 ### extraEnvFrom
 
 `extraEnvFrom` allows you to expose additional environment variables from other data sources in all containers in the pods.
-You can override them for each Sidekiq pod.
+Subsequently variables can be overridden per Sidekiq pod.
 
 Below is an example use of `extraEnvFrom`:
 
