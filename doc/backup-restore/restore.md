@@ -99,17 +99,17 @@ The steps for restoring a GitLab installation are
 1. Note the current number of replicas for database clients for subsequent restart:
 
    ```shell
-   kubectl get deploy -n gitlab -lapp=sidekiq,release=<helm release name> -o jsonpath='{.items[].spec.replicas}{"\n"}'
-   kubectl get deploy -n gitlab -lapp=webservice,release=<helm release name> -o jsonpath='{.items[].spec.replicas}{"\n"}'
-   kubectl get deploy -n gitlab -lapp=prometheus,release=<helm release name> -o jsonpath='{.items[].spec.replicas}{"\n"}'
+   kubectl get deploy -n <namespace> -lapp=sidekiq,release=<helm release name> -o jsonpath='{.items[].spec.replicas}{"\n"}'
+   kubectl get deploy -n <namespace> -lapp=webservice,release=<helm release name> -o jsonpath='{.items[].spec.replicas}{"\n"}'
+   kubectl get deploy -n <namespace> -lapp=prometheus,release=<helm release name> -o jsonpath='{.items[].spec.replicas}{"\n"}'
    ```
 
 1. Stop the clients of the database to prevent locks interfering with the restore process:
 
    ```shell
-   kubectl scale --replicas=0 -lapp=sidekiq,release=<helm release name>
-   kubectl scale --replicas=0 -lapp=webservice,release=<helm release name>
-   kubectl scale --replicas=0 -lapp=prometheus,release=<helm release name>
+   kubectl scale $(kubectl get deploy -lapp=sidekiq,release=<helm release name> -o name -n <namespace>) -n <namespace> --replicas=0
+   kubectl scale $(kubectl get deploy -lapp=webservice,release=<helm release name> -o name -n <namespace>) -n <namespace> --replicas=0
+   kubectl scale $(kubectl get deploy -lapp=prometheus,release=<helm release name> -o name -n <namespace>) -n <namespace> --replicas=0
    ```
 
 1. Run the backup utility to restore the tarball
@@ -132,9 +132,9 @@ The steps for restoring a GitLab installation are
 1. Restart the application:
 
    ```shell
-   kubectl scale --replicas=<value> -lapp=sidekiq,release=<helm release name>
-   kubectl scale --replicas=<value> -lapp=webservice,release=<helm release name>
-   kubectl scale --replicas=<value> -lapp=prometheus,release=<helm release name>
+   kubectl scale $(kubectl get deploy -lapp=sidekiq,release=<helm release name> -o name -n <namespace>) -n <namespace> --replicas=<value>
+   kubectl scale $(kubectl get deploy -lapp=webservice,release=<helm release name> -o name -n <namespace>) -n <namespace> --replicas=<value>
+   kubectl scale $(kubectl get deploy -lapp=prometheus,release=<helm release name> -o name -n <namespace>) -n <namespace> --replicas=<value>
    ```
 
 NOTE:
