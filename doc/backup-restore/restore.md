@@ -96,6 +96,14 @@ The steps for restoring a GitLab installation are
 
 1. Get the tarball ready in any of the above locations. Make sure it is named in the `<timestamp>_gitlab_backup.tar` format. Read what the [backup timestamp](https://docs.gitlab.com/ee/raketasks/backup_restore.html#backup-timestamp) is about.
 
+1. Note the current number of replicas for database clients for subsequent restart:
+
+   ```shell
+   kubectl get deploy -n gitlab -lapp=sidekiq,release=<helm release name> -o jsonpath='{.items[].spec.replicas}{"\n"}'
+   kubectl get deploy -n gitlab -lapp=webservice,release=<helm release name> -o jsonpath='{.items[].spec.replicas}{"\n"}'
+   kubectl get deploy -n gitlab -lapp=prometheus,release=<helm release name> -o jsonpath='{.items[].spec.replicas}{"\n"}'
+   ```
+
 1. Stop the clients of the database to prevent locks interfering with the restore process:
 
    ```shell
@@ -124,9 +132,9 @@ The steps for restoring a GitLab installation are
 1. Restart the application:
 
    ```shell
-   kubectl something -lapp=sidekiq,release=<helm release name>
-   kubectl something -lapp=webservice,release=<helm release name>
-   kubectl something -lapp=prometheus,release=<helm release name>
+   kubectl scale --replicas=<value> -lapp=sidekiq,release=<helm release name>
+   kubectl scale --replicas=<value> -lapp=webservice,release=<helm release name>
+   kubectl scale --replicas=<value> -lapp=prometheus,release=<helm release name>
    ```
 
 NOTE:
