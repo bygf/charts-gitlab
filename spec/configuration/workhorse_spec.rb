@@ -13,6 +13,10 @@ describe 'Workhorse configuration' do
     raw_toml = template.dig('ConfigMap/test-workhorse-default', 'data', 'workhorse-config.toml.tpl')
 
     expect(raw_toml).to match /^shutdown_timeout = "61s"/
+    expect(raw_toml).to include('[object_storage]')
+    expect(raw_toml).to include('[object_storage.s3]')
+    expect(raw_toml).to include('[object_storage.azurerm]')
+    expect(raw_toml).to include('[object_storage.google]')
     expect(raw_toml).not_to include('trusted_cidrs_for_propagation')
     expect(raw_toml).not_to include('trusted_cidrs_for_x_forwarded_for')
   end

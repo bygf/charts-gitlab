@@ -95,12 +95,15 @@ If consolidated object storage is in use, read the connection YAML
   If provider is AWS, render enabled as true.
 */}}
 {{- define "workhorse.object_storage.config" -}}
-{%- $supported_providers := slice "AWS" "AzureRM" -%}
+{%- $supported_providers := slice "AWS" "AzureRM" "Google" -%}
 {%- $provider := "" -%}
 {%- $aws_access_key_id := "" -%}
 {%- $aws_secret_access_key := "" -%}
 {%- $azure_storage_account_name := "" -%}
 {%- $azure_storage_access_key := "" -%}
+{%- $google_application_default := "" -%}
+{%- $google_json_key_string := "" -%}
+{%- $google_json_key_location := "" -%}
 {%- if file.Exists "/etc/gitlab/minio/accesskey" %}
   {%- $provider = "AWS" -%}
   {%- $aws_access_key_id = file.Read "/etc/gitlab/minio/accesskey" | strings.TrimSpace -%}
@@ -115,6 +118,12 @@ If consolidated object storage is in use, read the connection YAML
   {%- else if has $connection "azure_storage_account_name" -%}
     {%- $azure_storage_account_name = $connection.azure_storage_account_name -%}
     {%- $azure_storage_access_key = $connection.azure_storage_access_key -%}
+  {%- else if has $connection "google_application_default" -%}
+    {%- $google_application_default = $connection.google_application_default -%}
+  {%- else if has $connection "google_json_key_string" -%}
+    {%- $google_json_key_string = $connection.google_json_key_string -%}
+  {%- else if has $connection "google_json_key_location" -%}
+    {%- $google_json_key_location = $connection.google_json_key_location -%}
   {%- end -%}
 {%- end %}
 {%- if has $supported_providers $provider %}
@@ -131,6 +140,20 @@ aws_secret_access_key = {% $aws_secret_access_key | strings.TrimSpace | data.ToJ
 [object_storage.azurerm]
 azure_storage_account_name = {% $azure_storage_account_name | strings.TrimSpace | data.ToJSON %}
 azure_storage_access_key = {% $azure_storage_access_key | strings.TrimSpace | data.ToJSON %}
+{%-   else if eq $provider "Google" %}
+# Google storage configuration.
+[object_storage.google]
+{%-    if $google_application_default %}
+google_application_default = {% $google_application_default | strings.TrimSpace %}
+{%-    end %}
+{%-    if $google_json_key_string %}
+google_json_key_string = '''
+{% $google_json_key_string %}
+'''
+{%-    end %}
+{%-    if $google_json_key_location %}
+google_json_key_location = {% $google_json_key_location | strings.TrimSpace | data.ToJSON %}
+{%-    end %}
 {%-   end %}
 {%- end %}
 {{- end -}}
