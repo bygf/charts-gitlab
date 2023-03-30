@@ -78,7 +78,7 @@ registry:
     secretName: <TLS secret name>
 ```
 
-When a TLS certificate is shared between charts, it should be defined as [Global Value](https://helm.sh/docs/chart_template_guide/subcharts_and_globals/#global-chart-values).
+When a TLS certificate is shared between charts, it should be defined as [a global value](https://helm.sh/docs/chart_template_guide/subcharts_and_globals/#global-chart-values).
 
 ```yaml
 global:
@@ -89,7 +89,7 @@ global:
 
 ### Other Certificates
 
-For example, where `registry` was the owning chart, and the other charts need to reference the `registry` JWT signing certificate.
+To share certificates from an one chart to other charts, provide configuration similar to the example below in which the `registry` JWT signing certificate is shared with other charts.
 
 The owning chart should define its certificate secret like the following:
 
