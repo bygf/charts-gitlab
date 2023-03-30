@@ -676,3 +676,29 @@ configured, via the Toolbox Pod.
    - `OpenSSH configured to use AuthorizedKeysCommand ... no` _is expected_. This
      Rake task is checking for a local SSH server, which is actually present in the
      `gitlab-shell` chart, deployed elsewhere, and already configured appropriately.
+
+## Use other database providors
+
+The steps to configure cloud-native GitLab with Geo don't change
+significantly for database servers which are not built with the GitLab Linux package.
+
+The database configuration in the Helm chart refers to your cloud provider's
+database servers, or to the database servers you have built yourself.
+
+The outline below should be followed in order:
+
+1. Setup the main application database, using streaming replication:
+   - [With your cloud provider's tools - including the replica](https://docs.gitlab.com/ee/administration/geo/setup/external_database.html#leverage-your-cloud-providers-tools-to-replicate-the-primary-database).
+   - On your own database build, [configure the primary database for replication](https://docs.gitlab.com/ee/administration/geo/setup/external_database.html#manually-configure-the-primary-database-for-replication) and [configure the replica](https://docs.gitlab.com/ee/administration/geo/setup/external_database.html#manually-configure-the-replica-database).
+1. [Setup the tracking database](https://docs.gitlab.com/ee/administration/geo/setup/external_database.html#configure-the-tracking-database)
+   on the same database server as the replica.
+1. [Setup Kubernetes clusters](#set-up-kubernetes-clusters)
+1. [Collect information](#collect-information)
+1. Create accounts (**missing**)
+1. [Deploy chart as Geo Primary site](#deploy-chart-as-geo-primary-site)
+1. [Set the Geo primary site](#set-the-geo-primary-site)
+1. [Copy secrets from primary site to secondary site](#copy-secrets-from-the-primary-site-to-the-secondary-site)
+1. [Deploy chart as Geo Secondary site](#deploy-chart-as-geo-secondary-site)
+   - The same `host` and `port` is used for both the replica of the application database, and the tracking database `gitlabhq_geo_production`
+1. [Add Secondary Geo site via Primary](#add-secondary-geo-site-via-primary)
+1. [Confirm Operational Status](#confirm-operational-status)
