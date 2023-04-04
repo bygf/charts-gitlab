@@ -1,0 +1,45 @@
+global:
+  hosts:
+    domain: gdk.test
+    externalIP: 172.16.123.1
+    https: false
+  ingress:
+    configureCertmanager: false
+    tls:
+      enabled: false
+  rails:
+    bootsnap:
+      enabled: false
+certmanager:
+  install: false
+nginx-ingress:
+  enabled: false
+prometheus:
+  install: false
+gitlab-runner:
+  install: false
+gitlab:
+  webservice:
+    minReplicas: 1
+    maxReplicas: 1
+    deployment:
+      livenessProbe:
+        initialDelaySeconds: 600
+        periodSeconds: 600
+        timeoutSeconds: 600
+      readinessProbe:
+        initialDelaySeconds: 600
+        periodSeconds: 600
+        timeoutSeconds: 600
+  sidekiq:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 1
+  gitlab-shell:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 1
+registry:
+  hpa:
+    minReplicas: 1
+    maxReplicas: 1
