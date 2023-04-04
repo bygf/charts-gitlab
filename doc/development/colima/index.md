@@ -17,9 +17,9 @@ In addition, it comes with an optional support for a Kubernetes cluster.
 Several parts need to be installed:
 
 - [colima](https://github.com/abiosoft/colima). Follow the [official installation instructions](https://github.com/abiosoft/colima#installation).
-- The docker runtime. Follow the [official installation instructions](https://github.com/abiosoft/colima#docker).
+- The Docker runtime. Follow the [official installation instructions](https://github.com/abiosoft/colima#docker).
 - kubectl. Follow the [official installation instructions](https://kubernetes.io/docs/tasks/tools/).
-- [helm](https://helm.sh/). Again, we can follow the [official installation instructions](https://helm.sh/docs/intro/install/).
+- [Helm](https://helm.sh/). Again, we can follow the [official installation instructions](https://helm.sh/docs/intro/install/).
 
 ### (Optional) Loopback interface
 
@@ -32,21 +32,21 @@ To ease the access of the exposed GitLab application, we're going to create a lo
 
 In `/etc/hosts`, add the following:
 
-```
+```shell
 <ip address> gitlab.gdk.test
 ```
 
 If you've been using the [loopback interface](#optional-loopback-interface), you will add the following:
 
-```
+```shell
 172.16.123.1 gitlab.gdk.test
 ```
 
-We used `gdk.test` as the host name but you can set it to anything. Keep in mind that an url ending with `.test` is recommended here.
+We used `gdk.test` as the host name but you can set it to anything. Keep in mind that an URL ending with `.test` is recommended here.
 
 ## Starting the Kubernetes cluster
 
-In this step, we're going to start `colima` which in turn will create a `qemu` VM on which the docker runtime will be running. In addition, we're going to ask `colima` to start the kubernetes support.
+In this step, we're going to start `colima` which in turn will create a `qemu` VM on which the Docker runtime will be running. In addition, we're going to ask `colima` to start the Kubernetes support.
 
 Start `colima`. The first execution of this command will take some time as it will need to create and initialize the `qemu` VM. We're going to use the minikube [recommended settings](../minikube/index.md#deploying-gitlab-with-recommended-settings) for the VM specs. Lastly, `colima` will properly set up `kubectl` to interact with the cluster.
 
@@ -75,11 +75,11 @@ This file will use the following:
 - Host set to `gdk.test`.
 - External IP set to `172.16.123.1`. If you're using the [loopback interface](#optional-loopback-interface), this is already the correct value.
 - No https configured.
-- No ingress configured. We're going to use a [port forward](#accessing-the-running-instance).
+- No Ingress configured. We're going to use a [port forward](#accessing-the-running-instance).
 - Promotheus disabled.
-- GitLab runner disabled.
+- GitLab Runner disabled.
 - Sidekiq disabled.
-- GitLab shell disabled.
+- GitLab Shell disabled.
 - Larger `webservice` container probes delays and timeouts to give more time to the rails application to boot.
 - Replicas count set to `1` to avoid using more resources than needed.
 
@@ -122,19 +122,19 @@ kubectl port-forward service/gitlab-webservice-default 7080:8181 --address 0.0.0
 
 This will run a small proxy in the foreground. You need to keep it running as long as you need to access the GitLab application with a web browser.
 
-Now, you can browse http://gitlab.gdk.test:7080. You should land on the login page. 
+Now, you can browse `http://gitlab.gdk.test:7080`. You should land on the login page. 
 
 Use `root` and the password from the previous step to log in. You should be able to proceed and see the list of packages.
 
 ## Tips
 
-At any point, you can "reset" the kubernetes cluster. `colima` will basically stop it, remove it and a create a new one from scratch.
+At any point, you can "reset" the Kubernetes cluster. `colima` will basically stop it, remove it and a create a new one from scratch.
 
 ```shell
 colima kubernetes reset
 ```
 
-To browse the logs of any pod/container in the cluster, consider using https://github.com/boz/kail.
+To browse the logs of any pod/container in the cluster, consider using [kail](https://github.com/boz/kail).
 
 ```shell
 # all logs
