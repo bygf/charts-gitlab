@@ -69,7 +69,8 @@ kube-system   metrics-server-5c8978b444-v6948           0/1     Running   0     
 
 For this part, we're going to clone the GitLab chart project and use it.
 
-For the configuration of the charts, [here](../../../examples/colima/values-minimum.yaml) is a provided minimum file. This file will use the following:
+For the configuration of the charts, [here](https://gitlab.com/gitlab-org/charts/gitlab/raw/master/examples/colima/values-minimum.yaml) is the provided minimum file.
+This file will use the following:
 
 - Host set to `gdk.test`.
 - External IP set to `172.16.123.1`. If you're using the [loopback interface](#optional-loopback-interface), this is already the correct value.
@@ -123,7 +124,7 @@ This will run a small proxy in the foreground. You need to keep it running as lo
 
 Now, you can browse http://gitlab.gdk.test:7080. You should land on the login page. 
 
-Use `root` and the password from the previous step to login. You should be able to login and see the list of packages.
+Use `root` and the password from the previous step to log in. You should be able to proceed and see the list of packages.
 
 ## Tips
 
