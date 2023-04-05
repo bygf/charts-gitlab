@@ -4,6 +4,7 @@
 Return the registry certificate secret name
 */}}
 {{- define "gitlab.registry.certificate.secret" -}}
+{{/*TODO: adjust for use with globals */}}
 {{- default (printf "%s-registry-secret" .Release.Name) .Values.global.registry.certificate.secret | quote -}}
 {{- end -}}
 
@@ -46,6 +47,7 @@ Return the registry's notification secret key
 Return the registry's notification mount
 */}}
 {{- define "gitlab.registry.notificationSecret.mount" -}}
+{{/*TODO: adjust for use with globals */}}
 - secret:
     name: {{ template "gitlab.registry.notificationSecret.secret" $ }}
     items:
