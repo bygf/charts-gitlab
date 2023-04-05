@@ -67,7 +67,7 @@ Return the registry api url
 {{- end -}}
 
 {{- define "gitlab.appConfig.registry.configuration" -}}
-{{/* TODO: adjust for use with globals*/}}
+{{/* TODO: gitlab.appConfig.registry.configuration adjust for use with globals*/}}
 registry:
   enabled: {{ or (not (kindIs "bool" .Values.registry.enabled)) .Values.registry.enabled }}
   host: {{ template "gitlab.registry.host" . }}
