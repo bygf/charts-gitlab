@@ -133,18 +133,3 @@ At any point, you can "reset" the Kubernetes cluster. `colima` will basically st
 ```shell
 colima kubernetes reset
 ```
-
-To browse the logs of any pod/container in the cluster, consider using [kail](https://github.com/boz/kail).
-
-```shell
-# all logs
-kail
-
-# logs of a given pod
-kail -p <exact pod name>
-
-# logs of a given container (located in any pod)
-kail -c <container name>
-kail -c gitlab-workhorse
-kail -c webservice
-```
