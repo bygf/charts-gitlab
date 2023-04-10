@@ -66,7 +66,7 @@ to the `helm install` command using the `--set` flags:
 | `deployment.strategy`          | { `type`: `Recreate` }      | Allows one to configure the update strategy utilized by the deployment |
 | `image`                        | `minio/minio`                 | MinIO image                             |
 | `imagePullPolicy`              | `Always`                      | MinIO image pull policy                 |
-| `imageTag`                     | `RELEASE.2023-03-24T21-41-23Z` | MinIO image tag                         |
+| `imageTag`                     | `RELEASE.2023-04-07T05-28-58Z` | MinIO image tag                         |
 | `minioConfig.browser`          | `on`                          | MinIO browser flag                      |
 | `minioConfig.domain`           |                               | MinIO domain                            |
 | `minioConfig.region`           | `us-east-1`                   | MinIO region                            |
