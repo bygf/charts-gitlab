@@ -88,7 +88,7 @@ image repository.
 {{- end -}}
 
 {{/*
-Returns ERB section for Workhorse direct object storage configuration.
+Returns gomplate section for Workhorse direct object storage configuration.
 
 If Minio in use, set AWS and keys.
 If consolidated object storage is in use, read the connection YAML
