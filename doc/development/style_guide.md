@@ -60,7 +60,7 @@ We use secrets to store sensitive information like passwords and share them amon
 
 The common fields we use them in are:
 
-- **Certificates** - certificates for the registry etc.
+- **Certificates** - Certificates for the registry, etc.
 - **Passwords** - Sharing the Redis password.
 - **Auth Tokens** - Sharing the inter-service auth tokens
 
