@@ -118,7 +118,7 @@ If consolidated object storage is in use, read the connection YAML
   {%- else if has $connection "azure_storage_account_name" -%}
     {%- $azure_storage_account_name = $connection.azure_storage_account_name -%}
     {%- $azure_storage_access_key = $connection.azure_storage_access_key -%}
-  {%- else if has $connection "google_application_default" -%}
+  {%- else if and (has $connection "google_application_default") $connection.google_application_default -%}
     {%- $google_application_default = $connection.google_application_default -%}
   {%- else if has $connection "google_json_key_string" -%}
     {%- $google_json_key_string = $connection.google_json_key_string -%}
