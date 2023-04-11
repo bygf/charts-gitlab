@@ -143,17 +143,17 @@ azure_storage_access_key = {% $azure_storage_access_key | strings.TrimSpace | da
 {%-   else if eq $provider "Google" %}
 # Google storage configuration.
 [object_storage.google]
-{%-    if $google_application_default %}
+{%-     if $google_application_default %}
 google_application_default = {% $google_application_default | strings.TrimSpace %}
-{%-    end %}
-{%-    if $google_json_key_string %}
+{%-     end %}
+{%-     if $google_json_key_string %}
 google_json_key_string = '''
 {% $google_json_key_string %}
 '''
 {%-    end %}
-{%-    if $google_json_key_location %}
+{%-     if $google_json_key_location %}
 google_json_key_location = {% $google_json_key_location | strings.TrimSpace | data.ToJSON %}
-{%-    end %}
+{%-     end %}
 {%-   end %}
 {%- end %}
 {{- end -}}
