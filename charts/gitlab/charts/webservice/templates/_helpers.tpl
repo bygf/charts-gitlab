@@ -96,64 +96,33 @@ If consolidated object storage is in use, read the connection YAML
 */}}
 {{- define "workhorse.object_storage.config" -}}
 {%- $supported_providers := slice "AWS" "AzureRM" "Google" -%}
-{%- $provider := "" -%}
-{%- $aws_access_key_id := "" -%}
-{%- $aws_secret_access_key := "" -%}
-{%- $azure_storage_account_name := "" -%}
-{%- $azure_storage_access_key := "" -%}
-{%- $google_application_default := "" -%}
-{%- $google_json_key_string := "" -%}
-{%- $google_json_key_location := "" -%}
-{%- if file.Exists "/etc/gitlab/minio/accesskey" %}
-  {%- $provider = "AWS" -%}
-  {%- $aws_access_key_id = file.Read "/etc/gitlab/minio/accesskey" | strings.TrimSpace -%}
-  {%- $aws_secret_access_key = file.Read "/etc/gitlab/minio/secretkey" | strings.TrimSpace -%}
+{%- $connection := coll.Dict "provider" "" -%}
+{%- if file.Exists "./etc/gitlab/minio/accesskey" %}
+  {%- $aws_access_key_id := file.Read "./etc/gitlab/minio/accesskey" | strings.TrimSpace -%}
+  {%- $aws_secret_access_key := file.Read "./etc/gitlab/minio/secretkey" | strings.TrimSpace -%}
+  {%- $connection = coll.Dict "provider" "AWS" "aws_access_key_id" $aws_access_key_id "aws_secret_access_key" $aws_secret_access_key -%}
 {%- end %}
-{%- if file.Exists "/etc/gitlab/objectstorage/object_store" %}
-  {%- $connection := file.Read "/etc/gitlab/objectstorage/object_store" | strings.TrimSpace | data.YAML -%}
-  {%- $provider = $connection.provider -%}
-  {%- if has $connection "aws_access_key_id" -%}
-    {%- $aws_access_key_id = $connection.aws_access_key_id -%}
-    {%- $aws_secret_access_key = $connection.aws_secret_access_key -%}
-  {%- else if has $connection "azure_storage_account_name" -%}
-    {%- $azure_storage_account_name = $connection.azure_storage_account_name -%}
-    {%- $azure_storage_access_key = $connection.azure_storage_access_key -%}
-  {%- else if and (has $connection "google_application_default") $connection.google_application_default -%}
-    {%- $google_application_default = $connection.google_application_default -%}
-  {%- else if has $connection "google_json_key_string" -%}
-    {%- $google_json_key_string = $connection.google_json_key_string -%}
-  {%- else if has $connection "google_json_key_location" -%}
-    {%- $google_json_key_location = $connection.google_json_key_location -%}
-  {%- end -%}
+{%- if file.Exists "./etc/gitlab/objectstorage/object_store" %}
+  {%- $connection = file.Read "./etc/gitlab/objectstorage/object_store" | strings.TrimSpace | data.YAML -%}
 {%- end %}
-{%- if has $supported_providers $provider %}
+{%- if has $supported_providers $connection.provider %}
 [object_storage]
-provider = "{% $provider %}"
-{%-   if eq $provider "AWS" %}
+provider = "{% $connection.provider %}"
+{%-   if eq $connection.provider "AWS" %}
 # AWS / S3 object storage configuration.
 [object_storage.s3]
 # access/secret can be blank!
-aws_access_key_id = {% $aws_access_key_id | strings.TrimSpace | data.ToJSON %}
-aws_secret_access_key = {% $aws_secret_access_key | strings.TrimSpace | data.ToJSON %}
-{%-   else if eq $provider "AzureRM" %}
+aws_access_key_id = {% $connection.aws_access_key_id | strings.TrimSpace | data.ToJSON %}
+aws_secret_access_key = {% $connection.aws_secret_access_key | strings.TrimSpace | data.ToJSON %}
+{%-   else if eq $connection.provider "AzureRM" %}
 # Azure Blob storage configuration.
 [object_storage.azurerm]
-azure_storage_account_name = {% $azure_storage_account_name | strings.TrimSpace | data.ToJSON %}
-azure_storage_access_key = {% $azure_storage_access_key | strings.TrimSpace | data.ToJSON %}
-{%-   else if eq $provider "Google" %}
+azure_storage_account_name = {% $connection.azure_storage_account_name | strings.TrimSpace | data.ToJSON %}
+azure_storage_access_key = {% $connection.azure_storage_access_key | strings.TrimSpace | data.ToJSON %}
+{%-   else if eq $connection.provider "Google" %}
 # Google storage configuration.
 [object_storage.google]
-{%-     if $google_application_default %}
-google_application_default = {% $google_application_default | strings.TrimSpace %}
-{%-     end %}
-{%-     if $google_json_key_string %}
-google_json_key_string = '''
-{% $google_json_key_string %}
-'''
-{%-    end %}
-{%-     if $google_json_key_location %}
-google_json_key_location = {% $google_json_key_location | strings.TrimSpace | data.ToJSON %}
-{%-     end %}
+{% $connection | coll.Omit "provider" | data.ToTOML %}
 {%-   end %}
 {%- end %}
 {{- end -}}
