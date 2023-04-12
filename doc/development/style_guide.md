@@ -72,6 +72,8 @@ Certificates are defined and shared based on their type and content.
 
 A TLS/SSL certificate is expected to be a valid [Kubernetes TLS Secret](https://kubernetes.io/docs/concepts/configuration/secret/#tls-secrets).
 
+For example, to set up the registry:
+
 ```yaml
 registry:
   tls:
@@ -89,7 +91,7 @@ global:
 
 ### Other Certificates
 
-To share certificates from an one chart to other charts, provide configuration similar to the example below in which the `registry` JWT signing certificate is shared with other charts.
+To share certificates from one chart to other charts, provide a configuration similar to the example below in which the `registry` JWT signing certificate is shared with other charts.
 
 The owning chart should define its certificate secret like the following:
 
