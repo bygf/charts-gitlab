@@ -107,9 +107,9 @@ The steps for restoring a GitLab installation are
 1. Stop the clients of the database to prevent locks interfering with the restore process:
 
    ```shell
-   kubectl scale $(kubectl get deploy -lapp=sidekiq,release=<helm release name> -o name -n <namespace>) -n <namespace> --replicas=0
-   kubectl scale $(kubectl get deploy -lapp=webservice,release=<helm release name> -o name -n <namespace>) -n <namespace> --replicas=0
-   kubectl scale $(kubectl get deploy -lapp=prometheus,release=<helm release name> -o name -n <namespace>) -n <namespace> --replicas=0
+   kubectl scale deploy -lapp=sidekiq,release=<helm release name> -n <namespace> --replicas=0
+   kubectl scale deploy -lapp=webservice,release=<helm release name> -n <namespace> --replicas=0
+   kubectl scale deploy -lapp=prometheus,release=<helm release name> -n <namespace> --replicas=0
    ```
 
 1. Run the backup utility to restore the tarball
@@ -132,9 +132,9 @@ The steps for restoring a GitLab installation are
 1. Restart the application:
 
    ```shell
-   kubectl scale $(kubectl get deploy -lapp=sidekiq,release=<helm release name> -o name -n <namespace>) -n <namespace> --replicas=<value>
-   kubectl scale $(kubectl get deploy -lapp=webservice,release=<helm release name> -o name -n <namespace>) -n <namespace> --replicas=<value>
-   kubectl scale $(kubectl get deploy -lapp=prometheus,release=<helm release name> -o name -n <namespace>) -n <namespace> --replicas=<value>
+   kubectl scale deploy -lapp=sidekiq,release=<helm release name> -n <namespace> --replicas=<value>
+   kubectl scale deploy -lapp=webservice,release=<helm release name> -n <namespace> --replicas=<value>
+   kubectl scale deploy -lapp=prometheus,release=<helm release name> -n <namespace> --replicas=<value>
    ```
 
 NOTE:
