@@ -109,12 +109,14 @@ If consolidated object storage is in use, read the connection YAML
 [object_storage]
 provider = "{% $connection.provider %}"
 {%-   if eq $connection.provider "AWS" %}
+{%- $connection = coll.Merge $connection (coll.Dict "aws_access_key_id" "" "aws_secret_access_key" "" ) %}
 # AWS / S3 object storage configuration.
 [object_storage.s3]
 # access/secret can be blank!
 aws_access_key_id = {% $connection.aws_access_key_id | strings.TrimSpace | data.ToJSON %}
 aws_secret_access_key = {% $connection.aws_secret_access_key | strings.TrimSpace | data.ToJSON %}
 {%-   else if eq $connection.provider "AzureRM" %}
+{%- $connection = coll.Merge $connection (coll.Dict "azure_storage_account_name" "" "azure_storage_account_name" "" ) %}
 # Azure Blob storage configuration.
 [object_storage.azurerm]
 azure_storage_account_name = {% $connection.azure_storage_account_name | strings.TrimSpace | data.ToJSON %}
