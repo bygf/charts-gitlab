@@ -538,6 +538,7 @@ global:
       #   clientKey:
       #   clientCertificate:
       #   serverCA:
+    ##XXX This is unrelated "registry"
     registry:
       replication:
         enabled: false
@@ -582,8 +583,13 @@ global:
       enabled: true
 
   ## https://docs.gitlab.com/charts/charts/globals#configure-registry-settings
+  ##TODO webservice/values.yaml/global.registry integration
   registry:
     bucket: registry
+    database: {}
+    migration: {}
+    gc: {}
+    reporting: {}
     certificate: {}
       # secret:
     httpSecret: {}
@@ -614,6 +620,7 @@ global:
       #         secret: gitlab-registry-specific-password
       #         key: password
       # events: {}
+    api: {}
 
   pages:
     enabled: false

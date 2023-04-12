@@ -448,7 +448,7 @@ We're explicitly checking for an actual value being present, not the existence o
 {{/* Pull the value, if it exists */}}
 {{- $global      := pluck "secretName" (default (dict) $.Values.global.ingress.tls) | first -}}
 {{- $webservice  := pluck "secretName" $.Values.gitlab.webservice.ingress.tls | first -}}
-{{- $registry    := pluck "secretName" $.Values.registry.ingress.tls | first -}}
+{{- $registry    := pluck "secretName" $.Values.global.registry.ingress.tls | first -}}
 {{- $minio       := pluck "secretName" $.Values.minio.ingress.tls | first -}}
 {{- $pages       := pluck "secretName" ((index $.Values.gitlab "gitlab-pages").ingress).tls | first -}}
 {{- $kas         := pluck "secretName" $.Values.gitlab.kas.ingress.tls | first -}}
@@ -462,7 +462,7 @@ We're explicitly checking for an actual value being present, not the existence o
      Now, disabled sub-charts won't block this template from working properly.
 */}}
 {{- $webservice  :=  default $webservice (not $.Values.gitlab.webservice.enabled) -}}
-{{- $registry    :=  default $registry (not $.Values.registry.enabled) -}}
+{{- $registry    :=  default $registry (not $.Values.global.registry.enabled) -}}
 {{- $minio       :=  default $minio (not $.Values.global.minio.enabled) -}}
 {{- $pages       :=  default $pages (not $.Values.global.pages.enabled) -}}
 {{- $kas         :=  default $kas (not $.Values.global.kas.enabled) -}}

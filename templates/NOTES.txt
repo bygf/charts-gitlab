@@ -6,26 +6,26 @@
 The minimum required version of PostgreSQL is now 12. See https://gitlab.com/gitlab-org/charts/gitlab/-/blob/master/doc/installation/upgrade.md for more details.
 
 {{- /* If the Container Registry metadata database is enabled, note it is not production ready */}}
-{{- if eq .Values.registry.database.enabled true }}
+{{- if eq .Values.global.registry.database.enabled true }}
 {{ $WARNING }}
 The Container Registry metadata database has been enabled. Please note that it is an experimental feature and must not be used in production.
 {{- end }}
 
 {{- /* If the Container Registry filesystem metadata is disabled, note it is not production ready */}}
-{{- if eq true .Values.registry.migration.disablemirrorfs }}
+{{- if eq true .Values.global.registry.migration.disablemirrorfs }}
 {{ $WARNING }}
 The Container Registry filesystem metadata has been disabled. Please note that it is an experimental feature and must not be used in production.
 {{- end }}
 
 {{- /* If the Container Registry migration mode is enabled, note it is not production ready */}}
-{{- if eq .Values.registry.migration.enabled true }}
+{{- if eq .Values.global.registry.migration.enabled true }}
 {{ $WARNING }}
 The Container Registry migration mode has been enabled. Please note that it is an experimental feature and must not be used in production.
 
 {{- end }}
 
 {{- /* If the Container Registry online garbage collection is enabled, note it is not production ready */}}
-{{- if eq false .Values.registry.gc.disabled }}
+{{- if eq false .Values.global.registry.gc.disabled }}
 {{ $WARNING }}
 The Container Registry online garbage collection has been enabled. Please note that it is an experimental feature and must not be used in production.
 {{- end }}
@@ -43,7 +43,7 @@ The automatic generation of secrets has been disabled.
 The user should ensure all necessary secrets are created according to documentation, or the deployment will fail to operate correctly.
 {{- end }}
 {{- /* If using self-signed auto-generated certificates, and a service needing them is enabled */}}
-{{- if or .Values.gitlab.webservice.enabled .Values.registry.enabled .Values.global.minio.enabled }}
+{{- if or .Values.gitlab.webservice.enabled .Values.global.registry.enabled .Values.global.minio.enabled }}
 {{-   if not (or .Values.global.ingress.configureCertmanager (include "gitlab.ingress.tls.configured" .)) }}
 {{ $WARNING }}
 Automatic TLS certificate generation with cert-manager is disabled.
@@ -64,7 +64,7 @@ OR all of:
 - gitlab.webservice.ingress.tls.smartcardSecretName
 {{- end }}
 {{- end }}
-{{- if $.Values.registry.enabled }}
+{{- if $.Values.global.registry.enabled }}
 - registry.ingress.tls.secretName
 {{- end }}
 {{- if $.Values.global.minio.enabled }}

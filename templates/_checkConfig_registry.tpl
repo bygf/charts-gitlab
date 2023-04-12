@@ -26,11 +26,11 @@ Registry: Notifications should be defined in the global scope. Use `global.regis
 Ensure Registry database is configured properly and dependencies are met
 */}}
 {{- define "gitlab.checkConfig.registry.database" -}}
-{{-   if $.Values.registry.database.enabled }}
+{{-   if $.Values.global.registry.database.enabled }}
 {{-     $validSSLModes := list "require" "disable" "allow" "prefer" "require" "verify-ca" "verify-full" -}}
-{{-     if not (has $.Values.registry.database.sslmode $validSSLModes) }}
+{{-     if not (has $.Values.global.registry.database.sslmode $validSSLModes) }}
 registry:
-    Invalid SSL mode "{{ .Values.registry.database.sslmode }}".
+    Invalid SSL mode "{{ .Values.global.registry.database.sslmode }}".
     Valid values are: {{ join ", " $validSSLModes }}.
     See https://docs.gitlab.com/charts/charts/registry#database
 {{-     end -}}
@@ -50,12 +50,12 @@ registry:
 Ensure Registry migration is configured properly and dependencies are met
 */}}
 {{- define "gitlab.checkConfig.registry.migration" -}}
-{{-   if and $.Values.registry.migration.enabled (not $.Values.registry.database.enabled) }}
+{{-   if and $.Values.registry.migration.enabled (not $.Values.global.registry.database.enabled) }}
 registry:
     Enabling migration mode requires the metadata database to be enabled.
     See https://docs.gitlab.com/charts/charts/registry#migration
 {{-   end -}}
-{{-   if and $.Values.registry.migration.disablemirrorfs (not $.Values.registry.database.enabled) }}
+{{-   if and $.Values.registry.migration.disablemirrorfs (not $.Values.global.registry.database.enabled) }}
 registry:
     Disabling filesystem metadata requires the metadata database to be enabled.
     See https://docs.gitlab.com/charts/charts/registry#migration
@@ -79,7 +79,7 @@ registry:
 Ensure Registry online garbage collection is configured properly and dependencies are met
 */}}
 {{- define "gitlab.checkConfig.registry.gc" -}}
-{{-   if not (or $.Values.registry.gc.disabled $.Values.registry.database.enabled) }}
+{{-   if not (or $.Values.registry.gc.disabled $.Values.global.registry.database.enabled) }}
 registry:
     Enabling online garbage collection requires the metadata database to be enabled.
     See https://docs.gitlab.com/charts/charts/registry#gc
@@ -91,32 +91,32 @@ registry:
 Ensure Registry Redis cache is configured properly and dependencies are met
 */}}
 {{- define "gitlab.checkConfig.registry.redis.cache" -}}
-{{-   if and $.Values.registry.redis.cache.enabled (not $.Values.registry.database.enabled) }}
+{{-   if and $.Values.global.registry.redis.cache.enabled (not $.Values.global.registry.database.enabled) }}
 registry:
     Enabling the Redis cache requires the metadata database to be enabled.
     See https://docs.gitlab.com/charts/charts/registry#redis-cache
 {{-   end -}}
-{{-   if and $.Values.registry.database.enabled $.Values.registry.redis.cache.enabled }}
-{{-     if  and (kindIs "string" $.Values.registry.redis.cache.host) (empty $.Values.registry.redis.cache.host) }}
+{{-   if and $.Values.global.registry.database.enabled $.Values.global.registry.redis.cache.enabled }}
+{{-     if  and (kindIs "string" $.Values.global.registry.redis.cache.host) (empty $.Values.global.registry.redis.cache.host) }}
 registry:
     Enabling the Redis cache requires the host to not be empty.
     See https://docs.gitlab.com/charts/charts/registry#redis-cache
 {{-     end -}}
 {{- end -}}
-{{-   if and $.Values.registry.database.enabled $.Values.registry.redis.cache.enabled $.Values.registry.redis.cache.sentinels}}
-{{-     if  not $.Values.registry.redis.cache.host }}
+{{-   if and $.Values.global.registry.database.enabled $.Values.global.registry.redis.cache.enabled $.Values.global.registry.redis.cache.sentinels}}
+{{-     if  not $.Values.global.registry.redis.cache.host }}
 registry:
     Enabling the Redis cache with sentinels requires the registry.redis.cache.host to be set.
     See https://docs.gitlab.com/charts/charts/registry#redis-cache
 {{-     end -}}
 {{- end -}}
-{{-   if and $.Values.registry.redis.cache.enabled $.Values.registry.redis.cache.password.enabled }}
-{{-     if and (kindIs "string" $.Values.registry.redis.cache.password.secret) (empty $.Values.registry.redis.cache.password.secret) }}
+{{-   if and $.Values.global.registry.redis.cache.enabled $.Values.global.registry.redis.cache.password.enabled }}
+{{-     if and (kindIs "string" $.Values.global.registry.redis.cache.password.secret) (empty $.Values.global.registry.redis.cache.password.secret) }}
 registry:
     Enabling the Redis cache password requires 'registry.redis.cache.password.secret' to be set.
     See https://docs.gitlab.com/charts/charts/registry#redis-cache
 {{-     end -}}
-{{-     if and (kindIs "string" $.Values.registry.redis.cache.password.key) (empty $.Values.registry.redis.cache.password.key) }}
+{{-     if and (kindIs "string" $.Values.global.registry.redis.cache.password.key) (empty $.Values.global.registry.redis.cache.password.key) }}
 registry:
     Enabling the Redis cache password requires 'registry.redis.cache.password.key' to be set.
     See https://docs.gitlab.com/charts/charts/registry#redis-cache
@@ -129,7 +129,7 @@ registry:
 Ensure Registry TLS has a secret when enabled
 */}}
 {{- define "gitlab.checkConfig.registry.tls" -}}
-{{-   if $.Values.registry.tls.enabled }}
+{{-   if $.Values.global.registry.tls.enabled }}
 {{-     if  not (eq (default "http" $.Values.global.hosts.registry.protocol) "https") }}
 registry:
     Enabling the service level TLS requires 'global.hosts.registry.protocol'

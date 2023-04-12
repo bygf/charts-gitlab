@@ -217,15 +217,17 @@ gitaly:
 minio:
   serviceName: 'minio-svc'
   port: 9000
-registry:
-  enabled: true
-  host:
-  # port: 443
-  api:
-    protocol: http
-    serviceName: registry
-    port: 5000
-  tokenIssuer: gitlab-issuer
+
+##TODO Move gitlab.sidekiq.registry
+## registry:
+##   enabled: true
+##   host:
+##   # port: 443
+##   api:
+##     protocol: http
+##     serviceName: registry
+##     port: 5000
+##   tokenIssuer: gitlab-issuer
 extra: {}
 
 ## Additional environment variables to set

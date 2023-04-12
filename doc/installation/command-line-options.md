@@ -239,7 +239,7 @@ settings from the [Redis chart](https://github.com/bitnami/charts/tree/master/bi
 | Parameter                                           | Description                                              | Default                           |
 |-----------------------------------------------------|----------------------------------------------------------|-----------------------------------|
 | `registry.authEndpoint`                             | Auth endpoint                                            | Undefined by default              |
-| `registry.enabled`                                  | Enable Docker registry                                   | true                              |
+| `global.registry.enabled`                                  | Enable Docker registry                                   | true                              |
 | `registry.httpSecret`                               | Https secret                                             |                                   |
 | `registry.minio.bucket`                             | MinIO registry bucket name                               | `registry`                        |
 | `registry.service.annotations`                      | Annotations to add to the `Service`                      | {}                                |

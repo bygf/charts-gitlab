@@ -57,6 +57,7 @@ Due to gotpl scoping, we can't make use of `range`, so we have to add action lin
 {{- $deprecated = append $deprecated (include "gitlab.deprecate.gitaly-gitconfig-volume" .) -}}
 {{- $deprecated = append $deprecated (include "gitlab.deprecate.hpa.legacyCpuTarget" .) -}}
 {{- $deprecated = append $deprecated (include "gitlab.deprecate.hpa.behaviorMispell" .) -}}
+{{- $deprecated = append $deprecated (include "gitlab.deprecate.registry.topLevel" .) -}}
 
 {{- /* prepare output */}}
 {{- $deprecated = without $deprecated "" -}}
@@ -459,5 +460,18 @@ gitlab.{{ $chart }}:
     The configuration of `gitlab.{{ $chart }}.hpa.behaviour` has moved. Please use `gitlab.{{ $chart }}.hpa.behavior` instead.
 {{-       end -}}
 {{-     end -}}
+{{-   end -}}
+{{- end -}}
+
+
+{{/*TODO Deprecate old top-level registry entry*/}}
+{{- define "gitlab.deprecate.registry.topLevel" -}}
+{{-   if hasKey $.Values.gitlab.webservice "registry" }}
+registry:
+    The configuration of `gitlab.webservice.registry` has moved. Please use `global.registry` instead
+{{-   end -}}
+{{-   if hasKey $.Values.gitlab.sidekiq "registry" }}
+registry:
+    The configuration of `gitlab.sidekiq.registry` has moved. Please use `global.registry` instead
 {{-   end -}}
 {{- end -}}

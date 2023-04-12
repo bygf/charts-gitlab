@@ -351,6 +351,16 @@ global:
     gitlab_docs:
       enabled: false
       host: ""
+  ##TODO integrate global.registry like top-level values.yaml
+  registry:
+    enabled: true
+    host:
+    # port: 443
+    api:
+      protocol: http
+      serviceName: registry
+      port: 5000
+    tokenIssuer: gitlab-issuer
 
 redis:
   password: {}
@@ -364,17 +374,6 @@ gitaly:
 minio:
   serviceName: 'minio-svc'
   port: 9000
-
-##TODO move registry: to globals
-## registry:
-##   enabled: true
-##   host:
-##   # port: 443
-##   api:
-##     protocol: http
-##     serviceName: registry
-##     port: 5000
-##   tokenIssuer: gitlab-issuer
 
 extra: {}
   # google_analytics_id: '_your_tracking_id'
