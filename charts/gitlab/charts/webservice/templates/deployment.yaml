@@ -434,7 +434,7 @@ spec:
       {{- end }}
       - name: webservice-config
         configMap:
-          name: {{ .fullname }}
+          name: {{ include "fullname" $ }}
       - name: workhorse-config
         configMap:
             name: {{ $.Release.Name }}-workhorse-{{ .name }}
