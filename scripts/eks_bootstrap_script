@@ -89,7 +89,7 @@ function has_ebs_csi_installed(){
     echo "An error occurred while running:"
     echo "aws eks describe-addon --cluster-name ${cluster_name} --addon-name aws-ebs-csi-driver --query 'addon.addonVersion' --output text"
     echo "Return code: ${status}"
-    exit 1
+    exit $status
   else
     echo "(NULL)"
   fi
@@ -105,7 +105,7 @@ function has_ebs_csi_role(){
   elif [ $status -ne 254 ]; then
     echo "An error occurred while running aws iam get-role --role-name=${ebs_csi_role_name}."
     echo "Return code: ${status}"
-    exit 1
+    exit $status
   else
     echo "(NULL)"
   fi
