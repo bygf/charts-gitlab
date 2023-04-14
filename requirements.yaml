@@ -36,6 +36,6 @@ dependencies:
   condition: nginx-ingress.enabled
   version: '*.*.*'
 - name: gitlab-zoekt
-  version: 0.2.0
+  version: 0.3.0
   repository: https://charts.gitlab.io/
   condition: gitlab-zoekt.install
